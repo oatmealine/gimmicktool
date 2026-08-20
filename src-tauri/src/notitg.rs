@@ -54,7 +54,7 @@ impl Serialize for NotITGError {
 
 pub type Slot = i32;
 
-#[derive(Clone, Copy, serde::Serialize)]
+#[derive(Clone, Copy, serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct VersionInfo {
   // the start of the external area
@@ -175,7 +175,7 @@ pub fn find_notitg_pid() -> Result<(Pid, &'static str), NotITGError> {
         println!("{pid}: failed to find matching NotITG version");
         continue;
       },
-      Ok(Some(ver)) => Ok((handle.0, ver))
+      Ok(Some(ver)) => Ok((handle.0 as _, ver))
     };
   }
 

@@ -27,7 +27,7 @@ pub struct Sometsuki {
   write_buf: Vec<Slot>,
   read_buf: Vec<Slot>,
 
-  // turns `true` when a `hello` is sent from the host
+  /// turns 'true' when a 'hello' is sent from the host
   opened: bool,
   closed: bool,
 
@@ -38,7 +38,7 @@ pub struct Sometsuki {
   last_header: Slot,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Debug)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "event", content = "data")]
 pub enum ConnectionEvent {
   Connected { name: String, version: String },
@@ -50,7 +50,7 @@ pub enum ConnectionEvent {
 impl Sometsuki {
   fn msg_encode(val: &Value) -> Result<Vec<Slot>, NotITGError> {
     let json = serde_json::to_string(val)?;
-    let encoded = json.as_bytes().iter().map(|b| *b as i32).collect();
+    let encoded = json.into_bytes().into_iter().map(|b| b as i32).collect();
     Ok(encoded)
   }
 
@@ -239,7 +239,7 @@ impl Sometsuki {
     if !self.write_buf.is_empty() {
       self.write_header(&C2H_WRITING)?;
       // TODO: this is a mess
-      for (i, value) in self.write_buf.drain(0..(self.size.min(self.write_buf.len() + 1)) - 1).enumerate() {
+      for (i, value) in self.write_buf.drain(0..(self.size - 1).min(self.write_buf.len())).enumerate() {
         write_addr(
           self.handle, 
           self.base_address + (i + 1) * size_of::<Slot>(),
