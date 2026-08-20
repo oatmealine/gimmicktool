@@ -8,6 +8,7 @@ pkgs.mkShell {
     wrapGAppsHook4
     cargo 
     cargo-tauri # Optional, Only needed if Tauri doesn't work through the traditional way.
+    clippy
     nodejs # Optional, this is for if you have a js frontend
     rustc # Needed for dev server (npm tauri dev)
     pnpm
