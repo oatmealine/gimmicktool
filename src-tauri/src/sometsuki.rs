@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+use log::{debug, error, info, trace, warn};
 use process_memory::{Pid, ProcessHandle, TryIntoProcessHandle};
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -200,7 +201,7 @@ impl Sometsuki {
       return Err(NotITGError::NotConnectedError);
     }
 
-    self.log(&format!("> {msg}"));
+    trace!("> {msg}");
     self.conn.as_mut().unwrap().send_message(msg_encode(msg)?);
     Ok(())
   }
@@ -213,7 +214,7 @@ impl Sometsuki {
   }
 
   fn on_message(&mut self, msg: Value) {
-    self.log(&format!("< {msg}"));
+    trace!("< {msg}");
 
     let Some(obj) = msg.as_object() else {
       self.emit_error(&format!("expected object, got {}", msg));
@@ -235,7 +236,7 @@ impl Sometsuki {
           self.emit_error("duplicate 'hello' message");
           self.disconnect(false);
         } else {
-          self.log("hello recieved; connection now open");
+          info!("hello recieved; connection now open");
           self.opened = true;
 
           let Some(name) = obj.get("n") else {
@@ -265,7 +266,7 @@ impl Sometsuki {
         }
       },
       "goodbye" => {
-        self.log("goodbye received, closing connection :(");
+        debug!("goodbye received, closing connection :(");
         self.disconnect(true);
       },
       "error" => {
@@ -278,7 +279,7 @@ impl Sometsuki {
           return;
         };
 
-        self.log(&format!("ERR: {err}"));
+        warn!("{err}");
         self.channel.as_ref().unwrap().send(ConnectionEvent::Error { message: err.to_owned() }).unwrap();
       },
       _ => {
@@ -293,14 +294,14 @@ impl Sometsuki {
     match msg_decode(&msg) {
       Ok(msg) => self.on_message(msg),
       Err(e) => {
-        self.log("< [malformed data]");
+        warn!("< [malformed data]");
         self.emit_error(&e.to_string())
       }
     }
   }
   
   fn hold(&mut self) {
-    self.log("holding");
+    trace!("holding");
     if self.hold_started.elapsed() > Sometsuki::HOLD_DURATION {
       // consider connection dropped
       self.disconnect(false);
@@ -311,7 +312,7 @@ impl Sometsuki {
     match self.process() {
       Ok(()) => (),
       Err(e) => {
-        self.log(&format!("ERR: error while processing: {e}"));
+        error!("ERR: error while processing: {e}");
         self.disconnect(true);
       },
     }
@@ -382,7 +383,7 @@ impl Sometsuki {
   const VERSION: &'static str = "0.0.0";
 
   fn greet(&mut self) -> Result<(), NotITGError> {
-    self.log("sending hello to host");
+    debug!("sending hello to host");
     self.send_message_force(&json!({
       "t": "hello",
       "n": Sometsuki::NAME,
@@ -391,15 +392,15 @@ impl Sometsuki {
   }
 
   fn emit_error(&mut self, msg: &str) {
-    self.log(&format!("sometsuki: sending error to host: {msg}"));
+    debug!("sending error to host: {msg}");
     match self.send_message(&json!({
       "t": "error",
       "m": msg
     })) {
       Ok(_) => (),
       Err(e) => {
-        self.log(&format!("failed sending error to host: {e}"));
-        self.log("assuming irrecoverable and disconnecting");
+        error!("failed sending error to host: {e}\n\
+                                     assuming irrecoverable and disconnecting");
         self.disconnect(false)
       }
     }
@@ -411,7 +412,7 @@ impl Sometsuki {
     })) {
       Ok(_) => (),
       Err(e) => {
-        self.log(&format!("failed sending heartbeat: {e}"));
+        error!("failed sending heartbeat: {e}");
         self.disconnect(true)
       }
     };
@@ -419,28 +420,24 @@ impl Sometsuki {
 
   pub fn disconnect(&mut self, quiet: bool) {
     if self.is_closed() {
-      self.log("WARN: attempted to disconnect while not connected, ignoring");
+      warn!("attempted to disconnect while not connected, ignoring");
       return;
     }
 
     self.channel.as_ref().unwrap().send(ConnectionEvent::Disconnected).unwrap();
-    self.log("disconnecting");
+    info!("disconnecting");
     if !quiet {
       match self.send_message_force(&json!({
         "t": "goodbye"
       })) {
         Ok(_) => (),
         Err(e) => {
-          self.log(&format!("failed sending goodbye to host: {e}"));
-          self.log("not really our issue anymore, ignoring");
+          warn!("failed sending goodbye to host: {e}\n\
+                                      not really our issue anymore, ignoring");
         }
       };
     }
     self.conn = None;
     self.channel = None;
-  }
-
-  pub fn log(& self, msg: &str) {
-    println!("[sometsuki] {}", msg)
   }
 }

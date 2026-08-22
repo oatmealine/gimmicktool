@@ -1,3 +1,4 @@
+use log::info;
 use process_memory::{DataMember, Memory, Pid, ProcessHandle, copy_address, TryIntoProcessHandle};
 use sysinfo::System;
 use std::io::ErrorKind;
@@ -25,11 +26,20 @@ pub enum NotITGError {
   // TODO i'm not certain why this requires specifying the send type here
   ThreadSendError(#[from] std::sync::mpsc::SendError<SometsukiCommand>),
   
-  #[error("permission denied when trying to read NotITG memory: {source}\nthis may indicate that the process is running under a different UID, or that your OS has unprivileged debugging enabled\ntry running `sudo sysctl -w kernel.yama.ptrace_scope=0` to temporarily lift the memory read restrictions globally on your system")]
-  MemoryPermissionError {
-    #[source]
-    source: std::io::Error,
-  },
+  // this is kind of a messy way to handle platform-specific error messages
+  #[cfg(target_os = "windows")]
+  #[error("permission denied when trying to read NotITG memory: {0}\n\
+           since there is currently a lack of Windows testing, i (as an error message) cannot offer help as to how to fix this. sorry!")]
+  MemoryPermissionError(#[source] std::io::Error),
+  #[cfg(target_os = "macos")]
+  #[error("permission denied when trying to read NotITG memory: {0}\n\
+           since there is currently a lack of macOS testing, i (as an error message) cannot offer help as to how to fix this. sorry!")]
+  MemoryPermissionError(#[source] std::io::Error),
+  #[cfg(target_os = "linux")]
+  #[error("permission denied when trying to read NotITG memory: {0}\n\
+           this may indicate that the process is running under a different UID, or that your OS has unprivileged debugging enabled\n\
+           try running `sudo sysctl -w kernel.yama.ptrace_scope=0` to temporarily lift the memory read restrictions globally on your system")]
+  MemoryPermissionError(#[source] std::io::Error),
 
   #[error("error reading from NotITG process: {0}")]
   MemoryReadError(#[source] std::io::Error),
@@ -113,27 +123,27 @@ pub fn write_addr<T: Copy>(handle: ProcessHandle, addr: usize, value: &T) -> std
 pub fn identify_notitg_version(handle: ProcessHandle) -> Result<Option<&'static str>, NotITGError> {
   let pid = handle.0;
   for (ver, info) in NOTITG_VERSIONS.iter() {
-    println!("{pid}: trying ver {ver} ({}); reading addr {:#x}", info.build_string, info.build_address);
+    info!("{pid}: trying ver {ver} ({}); reading addr {:#x}", info.build_string, info.build_address);
     let build: [u8; 8] = match read_addr(handle, info.build_address) {
       Ok(arr) => arr,
       Err(err) if err.kind() == ErrorKind::PermissionDenied => {
-        return Err(NotITGError::MemoryPermissionError { source: err });
+        return Err(NotITGError::MemoryPermissionError(err));
       },
       Err(err) => {
-        println!("{pid}: {:#?}", err);
+        info!("{pid}: {:#?}", err);
         continue;
       }
     };
 
     let s = std::str::from_utf8(&build).unwrap_or_default();
 
-    println!("{pid}: got {s}");
+    info!("{pid}: got {s}");
 
     if s != info.build_string {
       continue
     }
 
-    println!("{pid}: build number matches yay!!!");
+    info!("{pid}: build number matches yay!!!");
 
     return Ok(Some(ver));
   }
@@ -162,10 +172,10 @@ pub fn find_notitg_pid() -> Result<(Pid, &'static str), NotITGError> {
       continue;
     }
     
-    println!("found candidate pid {pid} ({:?})", cmd);
+    info!("found candidate pid {pid} ({:?})", cmd);
 
     let Ok(handle) = (pid.as_u32() as Pid).try_into_process_handle() else {
-      println!("{pid}: failed to create process handle");
+      info!("{pid}: failed to create process handle");
       continue;
     };
     return match identify_notitg_version(handle) {
@@ -173,7 +183,7 @@ pub fn find_notitg_pid() -> Result<(Pid, &'static str), NotITGError> {
         return Err(err);
       },
       Ok(None) => {
-        println!("{pid}: failed to find matching NotITG version");
+        info!("{pid}: failed to find matching NotITG version");
         continue;
       },
       Ok(Some(ver)) => Ok((handle.0 as _, ver))

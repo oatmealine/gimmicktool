@@ -15,6 +15,8 @@ use crate::state::AppState;
 const POLL_RATE: Duration = Duration::from_millis(1_000 / 100);
 
 pub fn run() {
+  pretty_env_logger::init();
+
   tauri::Builder::default()
     .setup(|app| {
       let (tx, rx) = std::sync::mpsc::channel::<SometsukiCommand>();
