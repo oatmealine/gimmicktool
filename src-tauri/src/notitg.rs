@@ -40,8 +40,6 @@ pub enum NotITGError {
   NoCompatibleProcessFoundError,
   #[error("no connected NotITG process")]
   NotConnectedError,
-  #[error("NotITG process connection closed")]
-  ConnectionClosedError,
   #[error("cannot open connection while a connection is still open")]
   ConnectionStillOpenError,
 }
