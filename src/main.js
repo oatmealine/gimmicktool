@@ -57,6 +57,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     try {
       await connect();
+      connectButton.style.display = 'none';
     } catch(e) {
       connectButton.removeAttribute('disabled');
       connectButton.innerText = 'connect';
@@ -64,11 +65,5 @@ window.addEventListener("DOMContentLoaded", async () => {
       error.style.display = '';
       error.innerText = e.toString();
     }
-    
-    connectButton.innerText = 'waiting for hello...';
-
-
-
-    connectButton.style.display = 'none';
   });
 });

@@ -1,9 +1,6 @@
-use crate::sometsuki::Sometsuki;
-use std::sync::{Mutex, mpsc::Sender};
+use crate::sometsuki::SometsukiCommand;
+use std::sync::mpsc::Sender;
 
-#[derive(Default)]
-pub struct AppStateInner {
-  pub sometsuki: Option<Sometsuki>,
-  pub sometsuki_tx: Option<Sender<()>>
+pub struct AppState {
+  pub sometsuki_tx: Sender<SometsukiCommand>,
 }
-pub type AppState = Mutex<AppStateInner>;

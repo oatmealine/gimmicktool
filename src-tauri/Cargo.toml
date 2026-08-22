@@ -19,6 +19,7 @@ process-memory = "0.5.0"
 regex = "1.13.1"
 sysinfo = { version = "0.39.6", features = [ "system" ] }
 thiserror = "2.0.20"
+oneshot = { version = "0.2.1", features = [ "std" ] }
 
 [profile.dev]
 incremental = true

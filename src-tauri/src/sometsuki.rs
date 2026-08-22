@@ -19,23 +19,13 @@ const C2H_READY: Slot = 0x06;
 const STREAM_END: i32 = 0x00;
 const STREAM_SEP: i32 = 0x01;
 
-pub struct Sometsuki {
+struct SometsukiConnection {
   handle: ProcessHandle,
   base_address: usize,
   size: usize,
   
   write_buf: Vec<Slot>,
   read_buf: Vec<Slot>,
-
-  /// turns 'true' when a 'hello' is sent from the host
-  opened: bool,
-  closed: bool,
-
-  hold_started: Instant,
-  last_message_received: Instant,
-
-  channel: Channel<ConnectionEvent>,
-  last_header: Slot,
 }
 
 #[derive(Clone, Serialize, Debug)]
@@ -47,50 +37,94 @@ pub enum ConnectionEvent {
   Disconnected,
 }
 
-impl Sometsuki {
-  fn msg_encode(val: &Value) -> Result<Vec<Slot>, NotITGError> {
-    let json = serde_json::to_string(val)?;
-    let encoded = json.into_bytes().into_iter().map(|b| b as i32).collect();
-    Ok(encoded)
+pub enum SometsukiCommand {
+  Connect {
+    reply: oneshot::Sender<Result<(), NotITGError>>,
+
+    pid: Pid, base_address: usize, size: usize,
+    channel: Channel<ConnectionEvent>,
+  },
+  SendMessage {
+    reply: oneshot::Sender<Result<(), NotITGError>>,
+
+    value: Value,
+  },
+  Disconnect,
+}
+
+pub struct Sometsuki {
+  conn: Option<SometsukiConnection>,
+  /// communicates back to the frontend
+  channel: Option<Channel<ConnectionEvent>>,
+
+  /// turns 'true' when a 'hello' is sent from the host
+  opened: bool,
+  
+  last_header: Slot,
+  hold_started: Instant,
+  last_message_received: Instant,
+}
+
+impl SometsukiConnection {
+  fn write_header(&mut self, value: &Slot) -> std::io::Result<()> {
+    write_addr(self.handle, self.base_address, value)
+  }
+  fn read_header(&mut self) -> std::io::Result<Slot> {
+    read_addr(self.handle, self.base_address)
   }
 
-  fn msg_decode(data: &[Slot]) -> Result<Value, NotITGError> {
-    let bytes: Vec<u8> = data.iter().map(|b| *b as u8).collect();
-    let decoded = str::from_utf8(&bytes)?;
-    let data: Value = serde_json::from_str(decoded)?;
-    Ok(data)
+  fn flush_read_buffer(&mut self) -> Vec<Slot> {
+    std::mem::take(&mut self.read_buf)
   }
 
-  pub fn new(pid: Pid, base_address: usize, size: usize, channel: Channel<ConnectionEvent>) -> Result<Sometsuki, NotITGError> {
-    let mut sometsuki = Sometsuki {
-      handle: pid.try_into_process_handle()?,
-      base_address,
-      size,
+  pub fn read(&mut self) -> std::io::Result<Vec<Vec<Slot>>> {
+    let mut msgs: Vec<Vec<Slot>> = Vec::new();
 
-      write_buf: Vec::new(),
-      read_buf: Vec::new(),
+    let buffer: Vec<Slot> = read_addr_vec(
+      self.handle,
+      self.base_address + size_of::<Slot>(),
+      self.size - 1
+    )?;
 
-      opened: false,
-      closed: false,
-
-      hold_started: Instant::now(),
-      last_message_received: Instant::now(),
-
-      channel,
-
-      last_header: 0,
-    };
-
-    sometsuki.greet()?;
-
-    Ok(sometsuki)
+    for v in buffer {
+      match v {
+        STREAM_SEP => msgs.push(self.flush_read_buffer()),
+        STREAM_END => {
+          msgs.push(self.flush_read_buffer());
+          break;
+        },
+        _ => self.read_buf.push(v),
+      };
+    }
+    
+    Ok(msgs)
   }
 
-  pub fn is_closed(&mut self) -> bool {
-    self.closed
+  pub fn write(&mut self, should_write_ack: bool) -> std::io::Result<()> {
+    if !self.write_buf.is_empty() {
+      self.write_header(&C2H_WRITING)?;
+      // TODO: this is a mess
+      for (i, value) in self.write_buf.drain(0..(self.size - 1).min(self.write_buf.len())).enumerate() {
+        write_addr(
+          self.handle, 
+          self.base_address + (i + 1) * size_of::<Slot>(),
+          &value
+        )?;
+      }
+      self.write_header(&C2H_READY)?;
+      Ok(())
+    } else if should_write_ack {
+      self.write_header(&C2H_ACK)
+    } else {
+      Ok(())
+    }
+  }
+
+  pub fn flush_write_buffer(&mut self) -> std::io::Result<()> {
+    self.write(false)
   }
   
-  fn send_message_raw(&mut self, msg: Vec<Slot>) {
+  fn send_message(&mut self, msg: Vec<Slot>) {
     if !self.write_buf.is_empty() {
       // replace the end STREAM_END with STREAM_SEP
       self.write_buf.pop();
@@ -99,17 +133,83 @@ impl Sometsuki {
     self.write_buf.extend(msg);
     self.write_buf.push(STREAM_END);
   }
-  pub fn send_message(&mut self, msg: &Value) -> Result<(), NotITGError> {
-    if self.closed {
-      return Err(NotITGError::ConnectionClosedError);
+}
+
+fn msg_encode(val: &Value) -> Result<Vec<Slot>, NotITGError> {
+  let json = serde_json::to_string(val)?;
+  let encoded = json.into_bytes().into_iter().map(|b| b as i32).collect();
+  Ok(encoded)
+}
+
+fn msg_decode(data: &[Slot]) -> Result<Value, NotITGError> {
+  let bytes: Vec<u8> = data.iter().map(|b| *b as u8).collect();
+  let decoded = str::from_utf8(&bytes)?;
+  let data: Value = serde_json::from_str(decoded)?;
+  Ok(data)
+}
+
+impl Sometsuki {
+  pub fn new() -> Sometsuki {
+    Sometsuki {
+      conn: None,
+      channel: None,
+
+      opened: false,
+
+      last_header: 0x00,
+      hold_started: Instant::now(),
+      last_message_received: Instant::now(),
     }
-    self.log(&format!("> {msg}"));
-    self.send_message_raw(Sometsuki::msg_encode(msg)?);
+  }
+
+  pub fn connect(&mut self, pid: Pid, base_address: usize, size: usize, channel: Channel<ConnectionEvent>) -> Result<(), NotITGError> {
+    if self.conn.is_some() {
+      return Err(NotITGError::ConnectionStillOpenError);
+    }
+
+    let conn = SometsukiConnection {
+      handle: pid.try_into_process_handle()?,
+      base_address,
+      size,
+
+      write_buf: Vec::new(),
+      read_buf: Vec::new(),
+    };
+
+    self.conn = Some(conn);
+    self.channel = Some(channel);
+
+    self.opened = false;
+    self.last_header = 0x00;
+    self.hold_started = Instant::now();
+    self.last_message_received = Instant::now();
+
+    self.greet()?;
+
     Ok(())
   }
+
+  pub fn is_closed(&mut self) -> bool {
+    self.conn.is_none()
+  }
+  
+  /// _does not immediately send the message_; it will be stored in the write
+  /// buffer until next possible write opportunity
+  pub fn send_message(&mut self, msg: &Value) -> Result<(), NotITGError> {
+    if self.is_closed() {
+      return Err(NotITGError::NotConnectedError);
+    }
+
+    self.log(&format!("> {msg}"));
+    self.conn.as_mut().unwrap().send_message(msg_encode(msg)?);
+    Ok(())
+  }
+  /// sends a message and immediately writes it, disregarding the current memory
+  /// contents
   fn send_message_force(&mut self, msg: &Value) -> Result<(), NotITGError> {
     self.send_message(msg)?;
-    self.write(false)
+    self.conn.as_mut().unwrap().flush_write_buffer()
+      .map_err(NotITGError::MemoryWriteError)
   }
 
   fn on_message(&mut self, msg: Value) {
@@ -159,7 +259,7 @@ impl Sometsuki {
             return;
           };
 
-          self.channel.send(ConnectionEvent::Connected {
+          self.channel.as_ref().unwrap().send(ConnectionEvent::Connected {
             name: name.to_owned(), version: version.to_owned()
           }).unwrap();
         }
@@ -179,18 +279,18 @@ impl Sometsuki {
         };
 
         self.log(&format!("ERR: {err}"));
-        self.channel.send(ConnectionEvent::Error { message: err.to_owned() }).unwrap();
+        self.channel.as_ref().unwrap().send(ConnectionEvent::Error { message: err.to_owned() }).unwrap();
       },
       _ => {
         if self.opened {
-          self.channel.send(ConnectionEvent::Message { value: msg }).unwrap();
+          self.channel.as_ref().unwrap().send(ConnectionEvent::Message { value: msg }).unwrap();
         }
       }
     }
   }
-
+  
   fn on_message_raw(&mut self, msg: Vec<Slot>) {
-    match Sometsuki::msg_decode(&msg) {
+    match msg_decode(&msg) {
       Ok(msg) => self.on_message(msg),
       Err(e) => {
         self.log("< [malformed data]");
@@ -198,67 +298,7 @@ impl Sometsuki {
       }
     }
   }
-
-  fn write_header(&mut self, value: &Slot) -> Result<(), NotITGError> {
-    write_addr(self.handle, self.base_address, value)
-      .map_err(|e| NotITGError::MemoryWriteError { source: e })
-  }
-  fn read_header(&mut self) -> Result<Slot, NotITGError> {
-    read_addr(self.handle, self.base_address)
-      .map_err(|e| NotITGError::MemoryReadError { source: e })
-  }
-
-  fn flush_message(&mut self) {
-    let msg = std::mem::take(&mut self.read_buf);
-    self.on_message_raw(msg);
-  }
-
-  fn read(&mut self) -> Result<(), NotITGError> {
-    let buffer: Vec<Slot> = read_addr_vec(
-      self.handle,
-      self.base_address + size_of::<Slot>(),
-      self.size - 1
-    )
-      .map_err(|e| NotITGError::MemoryReadError { source: e })?;
-
-    for v in buffer {
-      match v {
-        STREAM_SEP => self.flush_message(),
-        STREAM_END => {
-          self.flush_message();
-          break;
-        },
-        _ => self.read_buf.push(v),
-      };
-    }
-    
-    Ok(())
-  }
-
-  fn write(&mut self, should_write_ack: bool) -> Result<(), NotITGError> {
-    if !self.write_buf.is_empty() {
-      self.write_header(&C2H_WRITING)?;
-      // TODO: this is a mess
-      for (i, value) in self.write_buf.drain(0..(self.size - 1).min(self.write_buf.len())).enumerate() {
-        write_addr(
-          self.handle, 
-          self.base_address + (i + 1) * size_of::<Slot>(),
-          &value
-        )
-          .map_err(|e| NotITGError::MemoryWriteError { source: e })?;
-      }
-      self.write_header(&C2H_READY)?;
-      Ok(())
-    } else if should_write_ack {
-      self.write_header(&C2H_ACK)
-    } else {
-      Ok(())
-    }
-  }
-
-  const HOLD_DURATION: Duration = Duration::from_secs(5);
-  const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(10);
-
+  
   fn hold(&mut self) {
     self.log("holding");
     if self.hold_started.elapsed() > Sometsuki::HOLD_DURATION {
@@ -267,12 +307,21 @@ impl Sometsuki {
     }
   }
 
-  pub fn process(&mut self) -> Result<(), NotITGError> {
-    if self.closed {
-      return Err(NotITGError::ConnectionClosedError);
+  pub fn try_process(&mut self) {
+    match self.process() {
+      Ok(()) => (),
+      Err(e) => {
+        self.log(&format!("ERR: error while processing: {e}"));
+        self.disconnect(true);
+      },
     }
+  }
 
-    let header = self.read_header()?;
+  fn process(&mut self) -> Result<(), NotITGError> {
+    assert!(!self.is_closed(), "process() called while a connection is not active");
+
+    let header = self.conn.as_mut().unwrap().read_header()
+      .map_err(NotITGError::MemoryReadError)?;
     let is_new_header = header != self.last_header;
     self.last_header = header;
 
@@ -282,10 +331,12 @@ impl Sometsuki {
         if is_new_header {
           self.last_message_received = Instant::now();
         }
-        self.write(false)
+        self.conn.as_mut().unwrap().write(false)
+          .map_err(NotITGError::MemoryWriteError)
       },
       // host has not sent a message since, we can write if we have anything to write
-      C2H_ACK => self.write(false),
+      C2H_ACK => self.conn.as_mut().unwrap().write(false)
+        .map_err(NotITGError::MemoryWriteError),
       // host is not yet done writing, hold
       // or host has not yet read our message, hold
       H2C_WRITING | C2H_READY => {
@@ -298,14 +349,22 @@ impl Sometsuki {
       // host is done writing, read response then write back
       H2C_READY => {
         self.last_message_received = Instant::now();
-        self.read()?;
-        self.write(true)
+
+        let msgs = self.conn.as_mut().unwrap().read()
+          .map_err(NotITGError::MemoryReadError)?;
+        for msg in msgs {
+          self.on_message_raw(msg);
+        }
+
+        self.conn.as_mut().unwrap().write(true)
+          .map_err(NotITGError::MemoryWriteError)
       },
       // probably writing on seperate thread(?!), hold
       C2H_WRITING => Ok(()),
 
       // invalid header
-      _ => self.write(true),
+      _ => self.conn.as_mut().unwrap().write(true)
+        .map_err(NotITGError::MemoryWriteError),
     }?;
 
     if self.last_message_received.elapsed() > Sometsuki::HEARTBEAT_INTERVAL {
@@ -315,7 +374,10 @@ impl Sometsuki {
 
     Ok(())
   }
-  
+
+  const HOLD_DURATION: Duration = Duration::from_secs(5);
+  const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(10);
+
   const NAME: &'static str = "gimmicktool";
   const VERSION: &'static str = "0.0.0";
 
@@ -328,7 +390,7 @@ impl Sometsuki {
     }))
   }
 
-  pub fn emit_error(&mut self, msg: &str) {
+  fn emit_error(&mut self, msg: &str) {
     self.log(&format!("sometsuki: sending error to host: {msg}"));
     match self.send_message(&json!({
       "t": "error",
@@ -337,20 +399,31 @@ impl Sometsuki {
       Ok(_) => (),
       Err(e) => {
         self.log(&format!("failed sending error to host: {e}"));
-        self.log("sometsuki: assuming irrecoverable and disconnecting");
+        self.log("assuming irrecoverable and disconnecting");
         self.disconnect(false)
       }
     }
   }
 
   fn emit_heartbeat(&mut self) {
-    let _ = self.send_message(&json!({
+    match self.send_message(&json!({
       "t": "heartbeat"
-    }));
+    })) {
+      Ok(_) => (),
+      Err(e) => {
+        self.log(&format!("failed sending heartbeat: {e}"));
+        self.disconnect(true)
+      }
+    };
   }
 
   pub fn disconnect(&mut self, quiet: bool) {
-    self.channel.send(ConnectionEvent::Disconnected).unwrap();
+    if self.is_closed() {
+      self.log("WARN: attempted to disconnect while not connected, ignoring");
+      return;
+    }
+
+    self.channel.as_ref().unwrap().send(ConnectionEvent::Disconnected).unwrap();
     self.log("disconnecting");
     if !quiet {
       match self.send_message_force(&json!({
@@ -363,10 +436,11 @@ impl Sometsuki {
         }
       };
     }
-    self.closed = true;
+    self.conn = None;
+    self.channel = None;
   }
 
   pub fn log(& self, msg: &str) {
-    println!("[sometsuki<{}>] {}", self.handle.0, msg)
+    println!("[sometsuki] {}", msg)
   }
 }

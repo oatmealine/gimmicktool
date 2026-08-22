@@ -6,6 +6,8 @@ use std::sync::LazyLock;
 use serde::ser::{Serialize, Serializer};
 use regex::regex;
 
+use crate::sometsuki::SometsukiCommand;
+
 #[derive(Debug, thiserror::Error)]
 pub enum NotITGError {
   #[error("I/O error: {0}")]
@@ -16,6 +18,12 @@ pub enum NotITGError {
 
   #[error("UTF8 decoding error: {0}")]
   Utf8(#[from] std::str::Utf8Error),
+
+  #[error("could not communicate with sometsuki thread: {0}")]
+  ThreadReceiveError(#[from] oneshot::RecvError),
+  #[error("could not communicate with sometsuki thread: {0}")]
+  // TODO i'm not certain why this requires specifying the send type here
+  ThreadSendError(#[from] std::sync::mpsc::SendError<SometsukiCommand>),
   
   #[error("permission denied when trying to read NotITG memory: {source}\nthis may indicate that the process is running under a different UID, or that your OS has unprivileged debugging enabled\ntry running `sudo sysctl -w kernel.yama.ptrace_scope=0` to temporarily lift the memory read restrictions globally on your system")]
   MemoryPermissionError {
@@ -23,17 +31,10 @@ pub enum NotITGError {
     source: std::io::Error,
   },
 
-  #[error("error reading from NotITG process: {source}")]
-  MemoryReadError {
-    #[source]
-    source: std::io::Error,
-  },
-
-  #[error("error writing to NotITG process: {source}")]
-  MemoryWriteError {
-    #[source]
-    source: std::io::Error,
-  },
+  #[error("error reading from NotITG process: {0}")]
+  MemoryReadError(#[source] std::io::Error),
+  #[error("error writing to NotITG process: {0}")]
+  MemoryWriteError(#[source] std::io::Error),
 
   #[error("could not find compatible NotITG process")]
   NoCompatibleProcessFoundError,
@@ -41,6 +42,8 @@ pub enum NotITGError {
   NotConnectedError,
   #[error("NotITG process connection closed")]
   ConnectionClosedError,
+  #[error("cannot open connection while a connection is still open")]
+  ConnectionStillOpenError,
 }
 
 impl Serialize for NotITGError {
@@ -54,7 +57,7 @@ impl Serialize for NotITGError {
 
 pub type Slot = i32;
 
-#[derive(Clone, Copy, serde::Serialize, Debug)]
+#[derive(Clone, serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct VersionInfo {
   // the start of the external area
