@@ -304,6 +304,8 @@ impl Sometsuki {
     trace!("holding");
     if self.hold_started.elapsed() > Sometsuki::HOLD_DURATION {
       // consider connection dropped
+      info!("connection timed out");
+      self.channel.as_ref().unwrap().send(ConnectionEvent::Error { message: "connection timeout".to_string() }).unwrap();
       self.disconnect(false);
     }
   }
@@ -312,7 +314,8 @@ impl Sometsuki {
     match self.process() {
       Ok(()) => (),
       Err(e) => {
-        error!("ERR: error while processing: {e}");
+        error!("error while processing: {e}");
+        self.channel.as_ref().unwrap().send(ConnectionEvent::Error { message: e.to_string() }).unwrap();
         self.disconnect(true);
       },
     }

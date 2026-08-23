@@ -123,27 +123,27 @@ pub fn write_addr<T: Copy>(handle: ProcessHandle, addr: usize, value: &T) -> std
 pub fn identify_notitg_version(handle: ProcessHandle) -> Result<Option<&'static str>, NotITGError> {
   let pid = handle.0;
   for (ver, info) in NOTITG_VERSIONS.iter() {
-    info!("{pid}: trying ver {ver} ({}); reading addr {:#x}", info.build_string, info.build_address);
+    info!("trying ver {ver} ({}); reading addr {:#x}", info.build_string, info.build_address);
     let build: [u8; 8] = match read_addr(handle, info.build_address) {
       Ok(arr) => arr,
       Err(err) if err.kind() == ErrorKind::PermissionDenied => {
         return Err(NotITGError::MemoryPermissionError(err));
       },
       Err(err) => {
-        info!("{pid}: {:#?}", err);
+        info!("{:#?}", err);
         continue;
       }
     };
 
     let s = std::str::from_utf8(&build).unwrap_or_default();
 
-    info!("{pid}: got {s}");
+    info!("got {s}");
 
     if s != info.build_string {
       continue
     }
 
-    info!("{pid}: build number matches yay!!!");
+    info!("build number matches yay!!!");
 
     return Ok(Some(ver));
   }
