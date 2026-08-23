@@ -4,15 +4,18 @@
   "version": "0.1.0",
   "identifier": "zone.oat.gimmicktool",
   "build": {
-    "frontendDist": "../src"
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../build"
   },
   "app": {
     "withGlobalTauri": true,
     "windows": [
       {
         "title": "gimmicktool",
-        "width": 800,
-        "height": 600
+        "width": 300,
+        "height": 800
       }
     ],
     "security": {

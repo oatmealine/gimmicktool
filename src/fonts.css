@@ -1,0 +1,15 @@
+@font-face {
+  font-family: Eurostile;
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('fonts/eurostile.woff2') format('woff2'), url('fonts/eurostile.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: Eurostile;
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('fonts/eurostile-bold.woff2') format('woff2'), url('fonts/eurostile-bold.ttf') format('truetype');
+}

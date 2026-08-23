@@ -1,0 +1,61 @@
+:root {
+  color-scheme: light dark;
+  
+  --background-color: #f2f2fa;
+
+  --text: #111;
+  --text-header: #000;
+  --text-light: #aba4c4;
+  --text-red: #c81717;
+
+  --accent-color: #e83c56;
+  --accent-color-hover: #d5344c;
+  --accent-color-down: #c12d43;
+  --accent-color-text: #fff;
+
+  @media (prefers-color-scheme: dark) {
+    --background-color: #1e1c27;
+    --text: #eee;
+    --text-header: #fff;
+    --text-light: #4f4966;
+    --text-red: #da6767;
+  }
+
+  --font-regular: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Eurostile', 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-monospace: 'IBM Plex Mono', Consolas, monospace;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  color: var(--text);
+  background-color: var(--background-color);
+  font-family: var(--font-regular);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: bold;
+  color: var(--text-header);
+}
+
+button {
+  background-color: var(--accent-color);
+  color: var(--accent-color-text);
+  border-radius: 0;
+  border: none;
+  font-weight: 500;
+  padding: 0.5em 0.55em;
+
+  transition: .1s background-color;
+
+  &:hover {
+    background-color: var(--accent-color-hover);
+  }
+  &:active {
+    background-color: var(--accent-color-down);
+  }
+}
