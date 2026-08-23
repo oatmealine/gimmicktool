@@ -2768,9 +2768,8 @@ dependencies = [
 
 [[package]]
 name = "process-memory"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae9599c34fcc8067c3105dc746c0ce85e3ea61784568b8234179fad490b1dcc1"
+version = "0.4.0"
+source = "git+https://github.com/Kiiyya/rs-process-memory?branch=32bit#707eae2237df01de787828eccd27162f7353191d"
 dependencies = [
  "libc",
  "mach",

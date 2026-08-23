@@ -104,7 +104,7 @@ pub static NOTITG_VERSIONS: LazyLock<HashMap<&str, VersionInfo>> = LazyLock::new
 });
 
 pub fn read_addr<T: Copy>(handle: ProcessHandle, addr: usize) -> std::io::Result<T> {
-  let member: DataMember<T> = DataMember::new_offset(handle, vec![addr]);
+  let member: DataMember<T> = DataMember::new_addr(handle, addr);
   unsafe { member.read() }
 }
 
@@ -116,12 +116,11 @@ pub fn read_addr_vec<T: Copy>(handle: ProcessHandle, addr: usize, size: usize) -
 }
 
 pub fn write_addr<T: Copy>(handle: ProcessHandle, addr: usize, value: &T) -> std::io::Result<()> {
-  let member: DataMember<T> = DataMember::new_offset(handle, vec![addr]);
+  let member: DataMember<T> = DataMember::new_addr(handle, addr);
   member.write(value)
 }
 
 pub fn identify_notitg_version(handle: ProcessHandle) -> Result<Option<&'static str>, NotITGError> {
-  let pid = handle.0;
   for (ver, info) in NOTITG_VERSIONS.iter() {
     info!("trying ver {ver} ({}); reading addr {:#x}", info.build_string, info.build_address);
     let build: [u8; 8] = match read_addr(handle, info.build_address) {
