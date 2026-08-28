@@ -17,16 +17,16 @@ const C2H_WRITING: Slot = 0x05;
 const C2H_READY: Slot = 0x06;
 
 // special bytes
-const STREAM_END: i32 = 0x00;
-const STREAM_SEP: i32 = 0x01;
+const STREAM_END: u8 = 0x00;
+const STREAM_SEP: u8 = 0x01;
 
 struct SometsukiConnection {
   handle: ProcessHandle,
   base_address: usize,
   size: usize,
   
-  write_buf: Vec<Slot>,
-  read_buf: Vec<Slot>,
+  write_buf: Vec<u8>,
+  read_buf: Vec<u8>,
 }
 
 #[derive(Clone, Serialize, Debug)]
@@ -74,17 +74,17 @@ impl SometsukiConnection {
     read_addr(self.handle, self.base_address)
   }
 
-  fn flush_read_buffer(&mut self) -> Vec<Slot> {
+  fn flush_read_buffer(&mut self) -> Vec<u8> {
     std::mem::take(&mut self.read_buf)
   }
 
-  pub fn read(&mut self) -> std::io::Result<Vec<Vec<Slot>>> {
-    let mut msgs: Vec<Vec<Slot>> = Vec::new();
+  pub fn read(&mut self) -> std::io::Result<Vec<Vec<u8>>> {
+    let mut msgs: Vec<Vec<u8>> = Vec::new();
 
-    let buffer: Vec<Slot> = read_addr_vec(
+    let buffer: Vec<u8> = read_addr_vec(
       self.handle,
       self.base_address + size_of::<Slot>(),
-      self.size - 1
+      (self.size - 1) * (size_of::<Slot>() / size_of::<u8>())
     )?;
 
     for v in buffer {
@@ -104,11 +104,14 @@ impl SometsukiConnection {
   pub fn write(&mut self, should_write_ack: bool) -> std::io::Result<()> {
     if !self.write_buf.is_empty() {
       self.write_header(&C2H_WRITING)?;
-      // TODO: this is a mess
-      for (i, value) in self.write_buf.drain(0..(self.size - 1).min(self.write_buf.len())).enumerate() {
+      let end_idx = usize::min(
+        (self.size - 1) * (size_of::<Slot>() / size_of::<u8>()),
+        self.write_buf.len()
+      );
+      for (i, value) in self.write_buf.drain(0..end_idx).enumerate() {
         write_addr(
-          self.handle, 
-          self.base_address + (i + 1) * size_of::<Slot>(),
+          self.handle,
+          self.base_address + size_of::<Slot>() + i * size_of::<u8>(),
           &value
         )?;
       }
@@ -125,7 +128,7 @@ impl SometsukiConnection {
     self.write(false)
   }
   
-  fn send_message(&mut self, msg: Vec<Slot>) {
+  fn send_message(&mut self, msg: Vec<u8>) {
     if !self.write_buf.is_empty() {
       // replace the end STREAM_END with STREAM_SEP
       self.write_buf.pop();
@@ -136,15 +139,13 @@ impl SometsukiConnection {
   }
 }
 
-fn msg_encode(val: &Value) -> Result<Vec<Slot>, NotITGError> {
+fn msg_encode(val: &Value) -> Result<Vec<u8>, NotITGError> {
   let json = serde_json::to_string(val)?;
-  let encoded = json.into_bytes().into_iter().map(|b| b as i32).collect();
-  Ok(encoded)
+  Ok(json.into_bytes())
 }
 
-fn msg_decode(data: &[Slot]) -> Result<Value, NotITGError> {
-  let bytes: Vec<u8> = data.iter().map(|b| *b as u8).collect();
-  let decoded = str::from_utf8(&bytes)?;
+fn msg_decode(data: &[u8]) -> Result<Value, NotITGError> {
+  let decoded = str::from_utf8(data)?;
   let data: Value = serde_json::from_str(decoded)?;
   Ok(data)
 }
@@ -291,7 +292,7 @@ impl Sometsuki {
     }
   }
   
-  fn on_message_raw(&mut self, msg: Vec<Slot>) {
+  fn on_message_raw(&mut self, msg: Vec<u8>) {
     match msg_decode(&msg) {
       Ok(msg) => self.on_message(msg),
       Err(e) => {
@@ -359,6 +360,11 @@ impl Sometsuki {
           .map_err(NotITGError::MemoryReadError)?;
         for msg in msgs {
           self.on_message_raw(msg);
+        }
+
+        // there's a chance conn gets removed by now, so we should exit early if so
+        if self.conn.is_none() {
+          return Ok(());
         }
 
         self.conn.as_mut().unwrap().write(true)

@@ -57,8 +57,9 @@ should be considered dropped.
 
 ## Messages
 
-A message is a string of bytes, specifically UTF-8 JSON data written in indices
-1 to the end of the external memory space. `0x00` is used as a stream end
+A message is a string of characters, specifically UTF-8 JSON data written in
+indices 1 to the end of the external memory space. Data is packed such that each
+i32 external memory "slot" holds 4 u8 characters. `0x00` is used as a stream end
 marker, while `0x01` is used as a message end marker.
 
 For example, when sending 3 messages, each one should have a `0x01` marker after
