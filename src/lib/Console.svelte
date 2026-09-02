@@ -131,7 +131,8 @@
   }
   form input {
     flex: 0 0 auto;
-
+    
+    font-family: var(--font-monospace);
     background-color: var(--background-color);
     border: none;
     border-top: 1px solid var(--text-light);

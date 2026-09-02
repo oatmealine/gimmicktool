@@ -125,7 +125,7 @@
     margin-top: 1px;
 
     max-height: 50vh;
-    height: 15em;
+    height: 20em;
 
     overflow: auto;
   }

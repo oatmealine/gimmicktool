@@ -105,19 +105,7 @@
 
     input {
       display: block;
-      color: var(--text);
-      font-family: var(--font-regular);
-      font-size: inherit;
-      line-height: inherit;
       overflow: auto;
-
-      background: none;
-      border: none;
-      margin: 0;
-
-      &:focus {
-        outline: none;
-      }
       
       -moz-appearance: textfield;
       appearance: none;

@@ -67,19 +67,19 @@
   .node:not(.hidden) .type, .node-closer:not(.hidden) .type {
     color: rgb(147, 149, 255);
     @media (prefers-color-scheme: light) {
-      color: rgb(54, 57, 230);
+      color: rgb(37, 39, 171);
     }
   }
   .node:not(.hidden) .attr, .node-closer:not(.hidden) .attr {
     color: rgb(255, 239, 147);
     @media (prefers-color-scheme: light) {
-      color: rgb(219, 147, 32);
+      color: rgb(146, 109, 44);
     }
   }
   .node:not(.hidden) .string, .node-closer:not(.hidden) .string {
     color: rgb(174, 255, 147);
     @media (prefers-color-scheme: light) {
-      color: rgb(42, 168, 0);
+      color: rgb(51, 150, 18);
     }
   }
 

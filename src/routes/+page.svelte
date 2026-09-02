@@ -80,6 +80,9 @@
     }
     &.open .dot {
       background-color: #6af66a;
+      @media (prefers-color-scheme: light) {
+        background-color: #6cd56c;
+      }
     }
     &.connecting .dot {
       background-color: #ffbe44;
