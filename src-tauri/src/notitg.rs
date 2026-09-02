@@ -185,7 +185,7 @@ pub fn find_notitg_pid() -> Result<(Pid, &'static str), NotITGError> {
         info!("{pid}: failed to find matching NotITG version");
         continue;
       },
-      Ok(Some(ver)) => Ok((handle.0 as _, ver))
+      Ok(Some(ver)) => Ok((pid.as_u32() as Pid, ver))
     };
   }
 
