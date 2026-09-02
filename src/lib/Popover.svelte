@@ -22,7 +22,7 @@
     align-items: center;
     justify-content: center;
   }
-  .content {
+  .popover-content {
     width: 350px;
     max-width: 100%;
     height: 450px;
@@ -46,7 +46,7 @@
 </style>
 
 <div class="popover">
-  <div class="content">
+  <div class="popover-content">
     {@render children()}
   </div>
 </div>

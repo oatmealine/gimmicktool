@@ -13,6 +13,11 @@ const config = {
       fallback: 'index.html',
     }),
   },
+  // svelte might genuinely have the least useful a11y warnings of any framework
+  compilerOptions: {
+    // disable all warnings coming from node_modules and all accessibility warnings
+    warningFilter: (warning) => !warning.code.startsWith('a11y')
+  }
 };
 
 export default config;

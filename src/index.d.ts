@@ -38,7 +38,7 @@ declare global {
     buildString: string,
   }
 
-  // as passed by `actor_tree`
+  // as passed by `actor_tree_*`
   interface ActorTreeNode {
     // type, eg. Sprite
     t: string,
@@ -50,6 +50,59 @@ declare global {
     c: ActorTreeNode[] | undefined,
     // text (or undefined for non-bitmaptexts)
     x: string,
+  }
+  
+  // as passed by `actor_*`
+  interface ActorExtendedData {
+    // type, eg. Sprite
+    t: string,
+    // actor
+    // actor:GetName()
+    n: string,
+    // actor:GetHidden()
+    h: boolean,
+    // actor:GetX()
+    px: number,
+    // actor:GetY()
+    py: number,
+    // actor:GetZ()
+    pz: number,
+    // actor:GetRotationOrder()
+    ro: string,
+    // actor:GetRotationX()
+    rx: number,
+    // actor:GetRotationY()
+    ry: number,
+    // actor:GetRotationZ()
+    rz: number,
+    // actor:GetZoomX()
+    zx: number,
+    // actor:GetZoomY()
+    zy: number,
+    // actor:GetZoomZ()
+    zz: number,
+    // actor:GetBaseZoomX()
+    bzx: number,
+    // actor:GetBaseZoomY()
+    bzy: number,
+    // actor:GetBaseZoomZ()
+    bzz: number,
+    // actor:GetSkewX()
+    sx: number,
+    // actor:GetSkewY()
+    sy: number,
+    // ({actor:getdiffuse()})[1] -- red color channel
+    dr: number,
+    // ({actor:getdiffuse()})[1] -- green color channel
+    dg: number,
+    // ({actor:getdiffuse()})[1] -- blue color channel
+    db: number,
+    // ({actor:getdiffuse()})[1] -- alpha color channel
+    da: number,
+    
+    // BitmapText
+    // actor:GetText()
+    x?: string,
   }
 }
 

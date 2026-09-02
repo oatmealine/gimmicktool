@@ -24,6 +24,9 @@
   --font-regular: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: 'Eurostile', 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-monospace: 'IBM Plex Mono', Consolas, monospace;
+
+  font-size: 12pt;
+  accent-color: var(--accent-color);
 }
 
 html, body {

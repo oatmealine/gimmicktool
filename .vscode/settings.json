@@ -2,6 +2,5 @@
   "rust-analyzer.linkedProjects": [
     "src-tauri/Cargo.toml"
   ],
-  "rust-analyzer.checkOnSave": false,
   "svelte.enable-ts-plugin": true
 }

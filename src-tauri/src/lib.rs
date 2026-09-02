@@ -11,8 +11,8 @@ use tauri::{Manager};
 use crate::sometsuki::{Sometsuki, SometsukiCommand};
 use crate::state::AppState;
 
-// 100hz seems reasonable
-const POLL_RATE: Duration = Duration::from_millis(1_000 / 100);
+// 240hz seems reasonable
+const POLL_RATE: Duration = Duration::from_millis(1_000 / 240);
 
 pub fn run() {
   pretty_env_logger::init();

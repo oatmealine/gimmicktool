@@ -2,20 +2,84 @@
   import { onMount, onDestroy } from 'svelte';
   import { connection, sendMessage } from './sometsuki.svelte';
   import ActorNode from './ActorNode.svelte';
+  import { isSelected, selection, setSelection } from './actors.svelte';
+  import ActorPanel from './ActorPanel.svelte';
 
-  let root: ActorTreeNode | null = $state.raw(null);
+  let root: ActorTreeNode | null = $state(null);
 
   function onConnected() {
     sendMessage({ t: 'poll_actor_tree', v: true });
   }
 
+  function getPathValue(path: number[]) {
+    if (!root) throw 'no actor tree loaded';
+
+    let node: ActorTreeNode | undefined = root;
+    for (const i of path) {
+      node = node?.c?.[i];
+    }
+    return node;
+  }
+  function setPathValue(path: number[], value: ActorTreeNode | undefined) {
+    if (path.length === 0) root = value ?? null;
+    if (!root) throw 'no actor tree loaded';
+
+    let node: ActorTreeNode = root;
+    for (const i of path.slice(0, -1)) {
+      if (!node.c) throw `invalid path ${path.join('/')}`;
+      node = node?.c?.[i];
+      if (!node) throw `invalid path ${path.join('/')}`;
+    }
+    
+    if (!node.c) throw `invalid path ${path.join('/')}`;
+
+    if (value === undefined) {
+      node.c.splice(path[path.length - 1], 1);
+    } else {
+      node.c[path[path.length - 1]] = value;
+    }
+  }
+
   function onMessage(ev: CustomEvent) {
     const msg = ev.detail as Message;
 
-    if (msg.t !== 'actor_tree') return;
+    if (
+      msg.t !== 'actor_tree_init' && msg.t !== 'actor_tree_update' &&
+      msg.t !== 'actor_init' && msg.t !== 'actor_update' &&
+      msg.t !== 'actor_delete'
+    ) return;
     ev.preventDefault();
 
-    root = msg.d as ActorTreeNode;
+    if (msg.t === 'actor_tree_init') {
+      root = msg.d as ActorTreeNode;
+    } else if (msg.t === 'actor_tree_update') {
+      if (msg.e === 'set') {
+        if (selection.path && isSelected(msg.p))
+          setSelection(null);
+        setPathValue(msg.p, msg.d);
+      } else if (msg.e === 'update') {
+        const value = getPathValue(msg.p)!;
+        for (const [ k, v ] of Object.entries(msg.d)) {
+          //@ts-ignore
+          value[k] = v;
+        }
+      } else if (msg.e === 'delete') {
+        if (selection.path && isSelected(msg.p))
+          setSelection(null);
+        setPathValue(msg.p, undefined);
+      }
+    } else if (msg.t === 'actor_init') {
+      selection.data = null; // fix a stupid rune bug
+      selection.data = msg.d;
+    } else if (msg.t === 'actor_update') {
+      if (selection.path && isSelected(msg.p)) {
+        selection.data = { ...selection.data, ...msg.d };
+      }
+    } else if (msg.t === 'actor_delete') {
+      if (selection.path && isSelected(msg.p)) {
+        setSelection(null);
+      }
+    }
   }
 
   onMount(() => {
@@ -40,9 +104,30 @@
 
 <style>
   .container {
+    display: flex;
+    flex-direction: column;
+
     height: 100%;
+  }
+  .tree {
+    flex: 1 1 0;
+    min-height: 0;
+    font-size: 10pt;
+    --left: 0em;
+    
     padding: 0.5em 0;
-    font-size: 14px;
+    overflow: auto;
+  }
+  .selected {
+    flex: 0 0 auto;
+    padding: 0.5em;
+    border-top: 1px solid var(--text-light);
+    margin-top: 1px;
+
+    max-height: 50vh;
+    height: 15em;
+
+    overflow: auto;
   }
   .loading {
     padding: 0.5em;
@@ -53,7 +138,18 @@
 
 {#if root}
   <div class="container">
-    <ActorNode node={root} forceOpen={true}></ActorNode>
+    <div class="tree">
+      <ActorNode node={root} forceOpen={true} path={[]}></ActorNode>
+    </div>
+    {#if selection.path}
+      <div class="selected">
+        {#if !selection.data}
+          <div class="loading">loading...</div>
+        {:else}
+          <ActorPanel bind:actor={selection.data}></ActorPanel>
+        {/if}
+      </div>
+    {/if}
   </div>
 {:else if connection.state === 'open'}
   <div class="loading">loading...</div>

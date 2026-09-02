@@ -1,8 +1,9 @@
 <script lang="ts">
-    import { onDestroy, onMount } from 'svelte';
-  import { sendMessage } from './sometsuki.svelte';
+  import { onDestroy, onMount } from 'svelte';
+  import { connection, sendMessage } from './sometsuki.svelte';
 
-  let outputs = $state([]) as { type: 'input' | 'output' | 'error', res: string }[];
+  let outputs = $state.raw([]) as { type: 'input' | 'output' | 'error' | 'log', res: string }[];
+  let outputsDirty = false;
   let history: string[] = [];
   let historyIndex = -1;
   let commandCache = '';
@@ -11,15 +12,30 @@
   let historyElem: HTMLDivElement;
   let anchor: HTMLDivElement;
 
-  function pushToOutputs(part: { type: 'input' | 'output' | 'error', res: string }) {
+  function pushToOutputs(part: { type: 'input' | 'output' | 'error' | 'log', res: string }) {
     const anchorInView =
       historyElem.scrollTop + historyElem.clientHeight >= (historyElem.scrollHeight - 1);
 
     outputs.push(part);
 
+    if (outputs.length > 500) {
+      outputs.shift();
+    }
+
+    outputsDirty = true;
+
     if (anchorInView)
       setTimeout(() => anchor.scrollIntoView(), 0);
   }
+
+  // reducing redundant rerendering hack
+  onMount(() => {
+    const render = () => {
+      if (outputsDirty) outputs = [...outputs];
+      requestAnimationFrame(render);
+    };
+    render();
+  });
 
   function submit(ev: SubmitEvent) {
     ev.preventDefault();
@@ -27,6 +43,7 @@
     const cmd = input.value.trim();
 
     history.push(cmd);
+    historyIndex = -1;
     pushToOutputs({ type: 'input', res: cmd });
 
     if (cmd.length === 0) return;
@@ -34,13 +51,21 @@
     input.value = '';
   }
 
+  function onConnected() {
+    sendMessage({ t: 'subscribe_console', v: true });
+  }
+
   function onMessage(ev: CustomEvent) {
     const msg = ev.detail as Message;
 
-    if (msg.t !== 'eval_result') return;
+    if (msg.t !== 'eval_result' && msg.t !== 'console') return;
     ev.preventDefault();
 
-    pushToOutputs({ type: msg.o ? 'output' : 'error', res: msg.r });
+    if (msg.t === 'eval_result') {
+      pushToOutputs({ type: msg.o ? 'output' : 'error', res: msg.r });
+    } else {
+      pushToOutputs({ type: 'log', res: msg.r });
+    }
   }
   
   function moveCursorToEnd(el: HTMLInputElement) {
@@ -48,7 +73,11 @@
   }
 
   onMount(() => {
-    historyElem.scroll(0, 1);
+    // to account for being reloaded during dev
+    if (connection.state === 'open')
+      onConnected();
+
+    document.addEventListener('sometsukiconnected', onConnected);
 
     //@ts-ignore
     document.addEventListener('sometsukionmessage', onMessage);
@@ -86,6 +115,7 @@
   onDestroy(() => {
     //@ts-ignore
     document.removeEventListener('sometsukionmessage', onMessage);
+    sendMessage({ t: 'subscribe_console', v: false });
   });
 </script>
 
@@ -97,9 +127,9 @@
     justify-content: flex-end;
 
     font-family: var(--font-monospace);
-    font-size: 13px;
+    font-size: 10pt;
   }
-  input {
+  form input {
     flex: 0 0 auto;
 
     background-color: var(--background-color);
@@ -138,11 +168,16 @@
     flex-direction: row;
 
     .icon {
+      flex: 0 0 auto;
       color: var(--text-light);
       margin-right: 0.25em;
     }
     .res {
+      flex: 1 1 0;
+      min-width: 0;
       white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
     }
   }
 
@@ -175,6 +210,8 @@
           &lt;
           {:else if h.type === 'error'}
           ⚠
+          {:else if h.type === 'log'}
+          |
           {/if}
         </div>
         <div class="res">
