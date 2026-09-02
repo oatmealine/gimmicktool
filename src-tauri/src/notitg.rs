@@ -1,4 +1,4 @@
-use log::info;
+use log::{info, error};
 use process_memory::{DataMember, Memory, Pid, ProcessHandle, copy_address, TryIntoProcessHandle};
 use sysinfo::System;
 use std::io::ErrorKind;
@@ -33,7 +33,7 @@ pub enum NotITGError {
   MemoryPermissionError(#[source] std::io::Error),
   #[cfg(target_os = "macos")]
   #[error("permission denied when trying to read NotITG memory: {0}\n\
-           since there is currently a lack of macOS testing, i (as an error message) cannot offer help as to how to fix this. sorry!")]
+           try running gimmicktool as sudo and/or disabling SIP: https://github.com/koekeishiya/yabai/wiki/Disabling-System-Integrity-Protection")]
   MemoryPermissionError(#[source] std::io::Error),
   #[cfg(target_os = "linux")]
   #[error("permission denied when trying to read NotITG memory: {0}\n\
@@ -175,10 +175,14 @@ pub fn find_notitg_pid() -> Result<(Pid, &'static str), NotITGError> {
     
     info!("found candidate pid {pid} ({:?})", cmd);
 
-    let Ok(handle) = (pid.as_u32() as Pid).try_into_process_handle() else {
-      info!("{pid}: failed to create process handle");
-      continue;
+    let handle = match (pid.as_u32() as Pid).try_into_process_handle() {
+      Err(e) => {
+        error!("{pid}: failed to create process handle: {e}");
+        return Err(NotITGError::MemoryPermissionError(e));
+      },
+      Ok(handle) => handle,
     };
+
     return match identify_notitg_version(handle) {
       Err(err) => {
         return Err(err);

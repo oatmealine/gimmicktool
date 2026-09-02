@@ -1,15 +1,26 @@
 use crate::sometsuki::{ConnectionEvent, SometsukiCommand};
 use crate::notitg::{NOTITG_VERSIONS, NotITGError, VersionInfo, find_notitg_pid};
 
+use log::error;
 use process_memory::{Pid};
 use serde_json::Value;
 use tauri::ipc::Channel;
 use tauri::State;
 use crate::state::{AppState};
 
+fn report_if_errored<T>(res: Result<T, NotITGError>) -> Result<T, NotITGError> {
+  match res {
+  	Err(ref e) => {
+      error!("{e}");
+  	},
+  	Ok(_) => (),
+  };
+  res
+}
+
 #[tauri::command]
 pub fn find_notitg_process() -> Result<(Pid, &'static str, &'static VersionInfo), NotITGError> {
-  let (pid, ver) = find_notitg_pid()?;
+  let (pid, ver) = report_if_errored(find_notitg_pid())?;
   Ok((pid, ver, &NOTITG_VERSIONS[ver]))
 }
 
@@ -19,7 +30,7 @@ pub fn connect(state: State<'_, AppState>, pid: Pid, base_address: usize, size: 
   state.sometsuki_tx.send(SometsukiCommand::Connect {
     reply: reply_tx, pid, base_address, size, channel
   })?;
-  reply_rx.recv()?
+  report_if_errored(reply_rx.recv()?)
 }
 
 #[tauri::command]
@@ -28,7 +39,7 @@ pub fn send_message(state: State<'_, AppState>, value: Value) -> Result<(), NotI
   state.sometsuki_tx.send(SometsukiCommand::SendMessage {
     reply: reply_tx, value
   })?;
-  reply_rx.recv()?
+  report_if_errored(reply_rx.recv()?)
 }
 
 #[tauri::command]
