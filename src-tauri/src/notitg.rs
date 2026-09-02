@@ -41,6 +41,8 @@ pub enum NotITGError {
            try running `sudo sysctl -w kernel.yama.ptrace_scope=0` to temporarily lift the memory read restrictions globally on your system")]
   MemoryPermissionError(#[source] std::io::Error),
 
+  #[error("error creating NotITG process handle from PID: {0}")]
+  ProcessHandleError(#[source] std::io::Error),
   #[error("error reading from NotITG process: {0}")]
   MemoryReadError(#[source] std::io::Error),
   #[error("error writing to NotITG process: {0}")]

@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use log::{debug, error, info, trace, warn};
-use process_memory::{Pid, TryIntoProcessHandle};
+use process_memory::{Pid, ProcessHandle, TryIntoProcessHandle};
 use serde::Serialize;
 use serde_json::{Value, json};
 use tauri::ipc::Channel;
@@ -21,7 +21,7 @@ const STREAM_END: i32 = 0x00;
 const STREAM_SEP: i32 = 0x01;
 
 struct SometsukiConnection {
-  pid: Pid,
+  handle: ProcessHandle,
   base_address: usize,
   size: usize,
   
@@ -68,10 +68,10 @@ pub struct Sometsuki {
 
 impl SometsukiConnection {
   fn write_header(&mut self, value: &Slot) -> std::io::Result<()> {
-    write_addr(self.pid.try_into_process_handle()?, self.base_address, value)
+    write_addr(self.handle, self.base_address, value)
   }
   fn read_header(&mut self) -> std::io::Result<Slot> {
-    read_addr(self.pid.try_into_process_handle()?, self.base_address)
+    read_addr(self.handle, self.base_address)
   }
 
   fn flush_read_buffer(&mut self) -> Vec<Slot> {
@@ -82,7 +82,7 @@ impl SometsukiConnection {
     let mut msgs: Vec<Vec<Slot>> = Vec::new();
 
     let buffer: Vec<Slot> = read_addr_vec(
-      self.pid.try_into_process_handle()?,
+      self.handle,
       self.base_address + size_of::<Slot>(),
       self.size - 1
     )?;
@@ -107,7 +107,7 @@ impl SometsukiConnection {
       // TODO: this is a mess
       for (i, value) in self.write_buf.drain(0..(self.size - 1).min(self.write_buf.len())).enumerate() {
         write_addr(
-          self.pid.try_into_process_handle()?, 
+          self.handle, 
           self.base_address + (i + 1) * size_of::<Slot>(),
           &value
         )?;
@@ -169,7 +169,8 @@ impl Sometsuki {
     }
 
     let conn = SometsukiConnection {
-      pid,
+      handle: pid.try_into_process_handle()
+        .map_err(NotITGError::ProcessHandleError)?,
       base_address,
       size,
 
