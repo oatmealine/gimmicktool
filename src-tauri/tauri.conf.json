@@ -14,8 +14,8 @@
     "windows": [
       {
         "title": "gimmicktool",
-        "width": 300,
-        "height": 800
+        "width": 400,
+        "height": 640
       }
     ],
     "security": {
@@ -31,6 +31,10 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "signingIdentity": "-",
+      "entitlements": "./Entitlements.plist"
+    }
   }
 }
