@@ -188,5 +188,5 @@
     <div class="anchor" bind:this={anchor}></div>
   </div>
   
-  <form onsubmit={submit}><input type="text" bind:this={input}></form>
+  <form onsubmit={submit}><input type="text" spellcheck="false" bind:this={input}></form>
 </div>

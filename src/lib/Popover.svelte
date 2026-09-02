@@ -36,6 +36,8 @@
     align-items: center;
     justify-content: center;
     text-align: center;
+
+    word-break: break-word;
   }
 
   :global(body):has(.popover) {
