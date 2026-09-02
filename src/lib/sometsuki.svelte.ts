@@ -57,6 +57,7 @@ export async function connect() {
     connection.desc = 'waiting for response...';
     console.log('yay!');
   } catch(err) {
+    console.error('failed to connect:', err);
     connection.error = (err as string).toString();
     connection.state = 'closed';
   }
