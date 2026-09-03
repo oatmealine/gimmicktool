@@ -2,42 +2,11 @@
   import { onMount, onDestroy } from 'svelte';
   import { connection, sendMessage } from './sometsuki.svelte';
   import ActorNode from './ActorNode.svelte';
-  import { isSelected, selection, setSelection } from './actors.svelte';
+  import { getActorRoot, getPathValue, isSelected, selection, setActorRoot, setPathValue, setSelection } from './actors.svelte';
   import ActorPanel from './ActorPanel.svelte';
-
-  let root: ActorTreeNode | null = $state(null);
 
   function onConnected() {
     sendMessage({ t: 'poll_actor_tree', v: true });
-  }
-
-  function getPathValue(path: number[]) {
-    if (!root) throw 'no actor tree loaded';
-
-    let node: ActorTreeNode | undefined = root;
-    for (const i of path) {
-      node = node?.c?.[i];
-    }
-    return node;
-  }
-  function setPathValue(path: number[], value: ActorTreeNode | undefined) {
-    if (path.length === 0) root = value ?? null;
-    if (!root) throw 'no actor tree loaded';
-
-    let node: ActorTreeNode = root;
-    for (const i of path.slice(0, -1)) {
-      if (!node.c) throw `invalid path ${path.join('/')}`;
-      node = node?.c?.[i];
-      if (!node) throw `invalid path ${path.join('/')}`;
-    }
-    
-    if (!node.c) throw `invalid path ${path.join('/')}`;
-
-    if (value === undefined) {
-      node.c.splice(path[path.length - 1], 1);
-    } else {
-      node.c[path[path.length - 1]] = value;
-    }
   }
 
   function onMessage(ev: CustomEvent) {
@@ -51,7 +20,7 @@
     ev.preventDefault();
 
     if (msg.t === 'actor_tree_init') {
-      root = msg.d as ActorTreeNode;
+      setActorRoot(msg.d as ActorTreeNode);
     } else if (msg.t === 'actor_tree_update') {
       if (msg.e === 'set') {
         if (selection.path && isSelected(msg.p))
@@ -136,10 +105,10 @@
   }
 </style>
 
-{#if root}
+{#if getActorRoot()}
   <div class="container">
     <div class="tree">
-      <ActorNode node={root} forceOpen={true} path={[]}></ActorNode>
+      <ActorNode node={getActorRoot()!} forceOpen={true} path={[]}></ActorNode>
     </div>
     {#if selection.path}
       <div class="selected">

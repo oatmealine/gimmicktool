@@ -76,7 +76,7 @@
     display: flex;
     flex-direction: row;
     border: 1px solid var(--text-light);
-    border-radius: 2px;
+    border-radius: var(--border-radius);
     align-items: center;
     width: 100%;
     min-height: 1.38em; /* hacky input height fix */

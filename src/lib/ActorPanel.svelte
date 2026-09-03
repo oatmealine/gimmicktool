@@ -2,10 +2,11 @@
   const { actor = $bindable() }: { actor: ActorExtendedData } = $props();
   
   import { sendMessage } from './sometsuki.svelte';
-  import { selection } from './actors.svelte';
+  import { getPathValue, selection } from './actors.svelte';
   import DragButton from './DragButton.svelte';
   import NumberField from './NumberField.svelte';
-    import { FolderIcon, FrownIcon, GlobeIcon, InfoIcon, PrinterIcon } from 'svelte-feather-icons';
+  import { FolderIcon, FrownIcon, GlobeIcon, InfoIcon, PrinterIcon } from 'svelte-feather-icons';
+    import { onMount } from 'svelte';
 
   function callMethod(methodName: string, ...values: any[]) {
     sendMessage({
@@ -191,6 +192,16 @@
       }
     ],
   };
+
+  let pathOverflowing = $state(false);
+  let pathContainer: HTMLDivElement;
+
+  onMount(() => {
+    console.log(pathContainer.scrollWidth, pathContainer.clientWidth);
+    if (pathContainer.scrollWidth > pathContainer.clientWidth) {
+      pathOverflowing = true;
+    }
+  });
 </script>
 
 <style>
@@ -251,67 +262,123 @@
   summary {
     font-family: var(--font-display);
     color: var(--text-light);
+
     user-select: none;
     -webkit-user-select: none;
+
     margin-bottom: 0.5em;
-    list-style-type: '> ';
-    text-align: center;
-    &::marker {
-      font-family: var(--font-monospace);
-    }
-    &:hover::marker {
-      color: var(--text);
-    }
-    &, &::marker {
-      text-shadow:
-        1px 0px 0px var(--background-color),
-        2px 0px 0px var(--background-color),
-        3px 0px 0px var(--background-color),
-        4px 0px 0px var(--background-color),
-        5px 0px 0px var(--background-color),
-        -1px 0px 0px var(--background-color),
-        -2px 0px 0px var(--background-color),
-        -3px 0px 0px var(--background-color),
-        -4px 0px 0px var(--background-color),
-        -5px 0px 0px var(--background-color);
-    }
+  
+    list-style-type: '';
+
+    gap: 0.25em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
     background: linear-gradient(
       to bottom,
-      rgba(0, 0, 0, 0),
       rgba(0, 0, 0, 0) calc(50% - 0.1px),
       var(--text-light) 50%,
       var(--text-light) calc(50% + 0.5px),
-      rgba(0, 0, 0, 0) calc(50% + 0.6px),
-      rgba(0, 0, 0, 0) 100%
+      rgba(0, 0, 0, 0) calc(50% + 0.6px)
     );
+    
+    & .summary-marker::after {
+      font-family: var(--font-monospace);
+      content: '>';
+      padding: 0 0.25em;
+      background: var(--background-color);
+    }
+    &:hover .summary-marker::after {
+      color: var(--text);
+    }
+    & .summary-inner {
+      padding: 0 0.25em;
+      background: var(--background-color);
+    }
   }
-  details[open] > summary {
-    list-style-type: 'v ';
+  details[open] > summary .summary-marker::after {
+    content: 'v';
   }
 
-  .header{
+  .header {
     display: flex;
     flex-direction: row;
-    gap: 8px;
+    gap: 0.5em;
     align-items: center;
+    padding: 0 0.25em;
 
-    & .title-container{
+    & .header-left {
+      flex: 1 1 0;
+      min-width: 0;
+
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.5em;
 
-      & .jpath{
-        vertical-align: center; opacity: 0.5; font-size: 10pt
+      :global(svg) {
+        flex: 0 0 auto;
+      }
+
+      & .title {
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
       }
     }
   }
 
-  .header-buttons{
-    margin-left: auto;
+  .jpath {
+    font-size: 80%;
+    color: var(--text-sub);
+
+    width: 100%;
+
+    position: relative;
+
+    & .fader {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2em;
+      background: linear-gradient(to right, var(--background-color), rgba(0, 0, 0, 0));
+
+      pointer-events: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    &:not(.overflowing) .fader {
+      display: none;
+    }
+
+    & .path-container {
+      display: flex;
+
+      overflow: hidden;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+
+      & .path-part {
+        &:not(:last-child)::after {
+          margin: 0 0.2em;
+          content: '⟩';
+        }
+        &:last-child {
+          scroll-snap-align: end;
+        }
+      }
+    }
+  }
+
+  .header-buttons {
     display: flex;
     flex-direction: row;
-    gap: 8px;
+    gap: 0.5em;
     align-items: center;
+    flex: 0 0 auto;
 
     & div {
       display: flex;
@@ -327,36 +394,48 @@
 
       aspect-ratio: 1 / 1;
 
-      border-radius: 2px;
+      border-radius: var(--border-radius);
     }
   }
-
 </style>
 
 <div class="header">
-  <InfoIcon></InfoIcon>
-  <div class="title-container">
-    <div>
-      <span class="title" style="">{actor.t}</span>
-      {#if actor.n !== ''}
-        <span class="actor-name">"{actor.n}"</span>
-      {/if}
+  <div class="header-left">
+    <InfoIcon></InfoIcon>
+    <div class="title">
+      <div>
+        <span class="actor-type" style="">{actor.t}</span>
+        {#if actor.n !== ''}
+          <span class="actor-name">"{actor.n}"</span>
+        {/if}
+      </div>
+      <!-- Its like XPath but made by jade, therefore JPath -->
+      <div class="jpath" class:overflowing={pathOverflowing}>
+        <div class="path-container" bind:this={pathContainer}>
+          {#each [0, ...selection.path!] as pathPart, i}
+            {@const part = getPathValue(selection.path!.slice(0, i))!}
+            <span class="path-part">{part.n || part.t}</span>
+          {/each}
+        </div>
+        <div class="fader"></div>
+      </div>
     </div>
-    <!-- Its like XPath but made by jade, therefore JPath -->
-    <span class="jpath">placeholder &gt; placeholder &gt; cheese</span>
   </div>
   <div class="header-buttons">
     <div class="button"><FrownIcon size="1x"></FrownIcon></div>
     <div class="button"><PrinterIcon size="1x"></PrinterIcon></div>
     <div class="button"><GlobeIcon size="1x"></GlobeIcon></div>
-  </div>
-    
+  </div>    
 </div>
 
 
 {#each categories as cat}
 <details open={true}>
-  <summary>{cat}</summary>
+  <summary>
+    <div class="summary-marker"></div>
+    <div class="summary-inner">{cat}</div>
+    <div></div>
+  </summary>
   
   <div class="fields">
     {#each fieldDefs[cat] as field}

@@ -30,7 +30,7 @@
     height: 1.4em;
     aspect-ratio: 1 / 1;
 
-    border-radius: 2px;
+    border-radius: var(--border-radius);
   }
 </style>
 
