@@ -5,6 +5,7 @@
   import { selection } from './actors.svelte';
   import DragButton from './DragButton.svelte';
   import NumberField from './NumberField.svelte';
+    import { FolderIcon, FrownIcon, GlobeIcon, InfoIcon, PrinterIcon } from 'svelte-feather-icons';
 
   function callMethod(methodName: string, ...values: any[]) {
     sendMessage({
@@ -288,9 +289,70 @@
   details[open] > summary {
     list-style-type: 'v ';
   }
+
+  .header{
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+
+    & .title-container{
+      display: flex;
+      flex-direction: column;
+
+      & .jpath{
+        vertical-align: center; opacity: 0.5; font-size: 10pt
+      }
+    }
+  }
+
+  .header-buttons{
+    margin-left: auto;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+
+    & div {
+      display: flex;
+      border: 1px solid var(--text-light);
+      padding: 4px;
+      align-items: center;
+      justify-content: center;
+
+      user-select: none;
+      -webkit-user-select: none;
+
+      cursor: help;
+
+      aspect-ratio: 1 / 1;
+
+      border-radius: 2px;
+    }
+  }
+
 </style>
 
-<span class="title">{actor.t}</span> {#if actor.n !== ''}<span class="actor-name">"{actor.n}"</span>{/if}
+<div class="header">
+  <InfoIcon></InfoIcon>
+  <div class="title-container">
+    <div>
+      <span class="title" style="">{actor.t}</span>
+      {#if actor.n !== ''}
+        <span class="actor-name">"{actor.n}"</span>
+      {/if}
+    </div>
+    <!-- Its like XPath but made by jade, therefore JPath -->
+    <span class="jpath">placeholder &gt; placeholder &gt; cheese</span>
+  </div>
+  <div class="header-buttons">
+    <div class="button"><FrownIcon size="1x"></FrownIcon></div>
+    <div class="button"><PrinterIcon size="1x"></PrinterIcon></div>
+    <div class="button"><GlobeIcon size="1x"></GlobeIcon></div>
+  </div>
+    
+</div>
+
 
 {#each categories as cat}
 <details open={true}>
