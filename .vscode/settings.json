@@ -2,5 +2,8 @@
   "rust-analyzer.linkedProjects": [
     "src-tauri/Cargo.toml"
   ],
-  "svelte.enable-ts-plugin": true
+  "svelte.enable-ts-plugin": true,
+  "cSpell.words": [
+    "gimmicktool"
+  ]
 }
