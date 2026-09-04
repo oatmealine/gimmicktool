@@ -31,6 +31,8 @@
     aspect-ratio: 1 / 1;
 
     border-radius: var(--border-radius);
+
+    align-self: center;
   }
 </style>
 

@@ -103,6 +103,8 @@ declare global {
     // BitmapText
     // actor:GetText()
     x?: string,
+
+    [key: `m_${string}`]: any,
   }
 }
 

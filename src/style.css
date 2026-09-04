@@ -86,7 +86,7 @@ input:not([type=checkbox]), select {
 select {
   border: 1px solid var(--text-light);
   border-radius: var(--border-radius);
-  padding: 0 0.25em;
+  padding: 0 0.5em;
   padding-bottom: 1px; /* one of those things that just Looks Right */
 }
 

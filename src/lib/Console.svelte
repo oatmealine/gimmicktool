@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { connection, sendMessage } from './sometsuki.svelte';
+  import { history } from './history.svelte';
 
   let outputs = $state.raw([]) as { type: 'input' | 'output' | 'error' | 'log', res: string }[];
   let outputsDirty = false;
-  let history: string[] = [];
   let historyIndex = -1;
   let commandCache = '';
 
@@ -172,6 +172,9 @@
       flex: 0 0 auto;
       color: var(--text-light);
       margin-right: 0.25em;
+
+      user-select: none;
+      -webkit-user-select: none;
     }
     .res {
       flex: 1 1 0;

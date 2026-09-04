@@ -5,14 +5,24 @@
   import { getPathValue, selection } from './actors.svelte';
   import DragButton from './DragButton.svelte';
   import NumberField from './NumberField.svelte';
-  import { FolderIcon, FrownIcon, GlobeIcon, InfoIcon, PrinterIcon } from 'svelte-feather-icons';
-    import { onMount } from 'svelte';
+  import { FolderIcon, FrownIcon, GlobeIcon, InfoIcon, PrinterIcon, StarIcon } from 'svelte-feather-icons';
+  import { onMount } from 'svelte';
+
+  import modList from '../modlist_v4_9.txt?raw';
+    import { addToFavorites, getFavoriteIdx, isFavorited, removeFromFavorites } from './favoriteFields.svelte';
 
   function callMethod(methodName: string, ...values: any[]) {
     sendMessage({
       t: 'actor_call_method',
       p: selection.path,
       m: methodName, a: values,
+    });
+  }
+  function setMod(modName: string, ...values: any[]) {
+    sendMessage({
+      t: 'player_set_mod',
+      p: selection.path,
+      m: modName, a: values,
     });
   }
   function fieldOnChange(methodName: string) {
@@ -101,16 +111,48 @@
     getter: Getter,
     setter: Setter,
   }
+  interface FloatAttr {
+    type: 'float',
+    getter: Getter,
+    setter: Setter,
+    step?: number,
+  }
+
+  interface ModAttrPercent {
+    type: 'mod',
+    modType: 'percent',
+    name: string,
+    default: number | undefined,
+    nillable?: boolean,
+  }
+  interface ModAttrBool {
+    type: 'mod',
+    modType: 'bool',
+    name: string,
+    default: boolean | undefined,
+    nillable?: boolean,
+  }
+  interface ModAttrEnum {
+    type: 'mod',
+    modType: 'enum',
+    name: string,
+    values: string[],
+    default: string | undefined,
+    nillable?: boolean,
+  }
+
+  type ModAttr = ModAttrPercent | ModAttrBool | ModAttrEnum;
 
   const categories = [
     'Render',
     'Transform',
+    'Mods',
   ] as const;
 
   interface FieldDef {
     displayName: string,
     tooltip?: string,
-    attrs: BooleanAttr | Float2Attr | Float3Attr | ColorAttr | EnumAttr,
+    attrs: BooleanAttr | FloatAttr | Float2Attr | Float3Attr | ColorAttr | EnumAttr | ModAttr,
   }
 
   const fieldDefs: Record<typeof categories [number], FieldDef[]> = {
@@ -191,7 +233,103 @@
         }
       }
     ],
+    Mods: [],
   };
+
+  if (actor.t === 'Player') {
+    const enums: Record<string, string[]> = {};
+
+    for (const line of modList.split('\n')) {
+      if (line.length === 0) continue;
+      if (line.startsWith('//')) continue;
+      if (line.startsWith('Enums:')) continue;
+
+      // help me
+      if (line.startsWith('    ') && line[4] !== ' ') {
+        const enumName = line.split(':')[0].trim();
+        const enumValues = line.split(':')[1].trim().split(', ');
+
+        enums[enumName] = enumValues;
+      }
+
+      if (line.startsWith(' ')) continue;
+
+      const modName = line.split(':')[0];
+
+      if (
+        modName === 'ClearAll' ||
+        modName === 'Random' ||
+        modName === 'FromString'
+      )
+        continue;
+
+      // TODO
+      if (modName.endsWith('Col')) continue;
+
+      // these suck so bad
+      const args = line.split(':')[1].split(';')[0].trim().split(', ');
+      const valueDefault = line.split(':')[2].split(';')[0].trim();
+
+      const valueArg = args[args.length - 1] === 'float approach'
+        ? args[args.length - 2]
+        : args[args.length - 1];
+
+      const type = valueArg.split(' ')[0];
+      const nillable = valueArg.endsWith('or nil');
+
+      if (type === 'float') {
+        fieldDefs.Mods.push({
+          displayName: modName,
+          attrs: {
+            type: 'mod',
+            modType: 'percent',
+            name: modName,
+            default: valueDefault !== 'nil'
+              ? parseFloat(valueDefault)
+              : undefined,
+            nillable,
+          }
+        });
+      } else if (type === 'bool') {
+        fieldDefs.Mods.push({
+          displayName: modName,
+          attrs: {
+            type: 'mod',
+            modType: 'bool',
+            name: modName,
+            default: valueDefault !== 'nil'
+              ? valueDefault === 'true'
+              : undefined,
+            nillable,
+          }
+        });
+      } else if (type === 'enum') {
+        const enumName = valueArg.split(' ')[1];
+        const enumValues = enums[enumName];
+        if (!enumValues) {
+          console.warn(`unknown enum: ${enumValues}`);
+          continue;
+        }
+        
+        fieldDefs.Mods.push({
+          displayName: modName,
+          attrs: {
+            type: 'mod',
+            modType: 'enum',
+            name: modName,
+            values: enumValues,
+            default: valueDefault !== 'nil'
+              ? valueDefault
+              : undefined,
+            nillable,
+          }
+        });
+      } else {
+        console.warn(line);
+        console.warn(`unknown mod type: ${type}`);
+      }
+    }
+  }
 
   let pathOverflowing = $state(false);
   let pathContainer: HTMLDivElement;
@@ -207,17 +345,25 @@
 <style>
   .fields {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto auto 1fr auto;
+    grid-auto-rows: 1fr;
     gap: 4px 0.5em;
-    align-items: center;
+    align-items: baseline;
 
     user-select: none;
     -webkit-user-select: none;
 
     width: 100%;
 
+    .field-button {
+      grid-column: 1;
+    }
     .name {
       align-self: baseline;
+      grid-column: 2;
+    }
+    .knobs {
+      grid-column: 3;
     }
   }
   .knobs {
@@ -227,7 +373,8 @@
   }
   @media (max-width: 450px) {
     .fields {
-      grid-template-columns: auto 1fr min-content;
+      grid-template-columns: auto auto 1fr min-content;
+      grid-auto-rows: initial;
       align-items: flex-start;
       gap: 0.5em 0.5em;
       .name {
@@ -242,17 +389,22 @@
       gap: 4px;
     }
   }
-  .title {
-    color: var(--text-header);
+  
+  .field {
+    display: contents;
+    &.favorited > * {
+      order: calc(-1 - var(--fav-index));
+    }
   }
-  .actor-name {
-    font-style: italic;
+  .field input[type=checkbox] {
+    align-self: center;
   }
-
-  .name::before {
-    content: '•';
+  .field-button {
     color: var(--text-light);
-    margin-right: 0.5em;
+    .field.favorited &, &:hover {
+      color: var(--text);
+    }
+    width: 1ex;
   }
 
   .axis.x { color: rgb(219, 72, 72); }
@@ -300,6 +452,9 @@
   details[open] > summary .summary-marker::after {
     content: 'v';
   }
+  details {
+    padding-bottom: 0.5em;
+  }
 
   .header {
     display: flex;
@@ -328,6 +483,13 @@
         flex-direction: column;
       }
     }
+  }
+  
+  .title {
+    color: var(--text-header);
+  }
+  .actor-name {
+    font-style: italic;
   }
 
   .jpath {
@@ -439,76 +601,120 @@
   
   <div class="fields">
     {#each fieldDefs[cat] as field}
-    <div class="name">{field.displayName}</div>
-    
+    {@const fav = isFavorited(field.displayName)}
     {@const attrs = field.attrs}
     {@const type = attrs.type}
-    <div class="knobs">
-      {#if type === 'boolean'}
-      <input type="checkbox"
-        bind:checked={actor[attrs.getter] as boolean}
-        onchange={(ev) =>
-          callMethod(attrs.setter, attrs.setterAsNumber
-            ? (ev.target as HTMLInputElement).checked ? 1 : 0
-            : (ev.target as HTMLInputElement).checked
-          )
-        }
-      >
-      {:else if type === 'float2'}
-      <NumberField
-        bind:value={actor[attrs.getters[0]] as number}
-        onchange={fieldOnChange(attrs.setters[0])}
-        step={attrs.step}
-      ><span class="axis x">X</span></NumberField>
-      <NumberField
-        bind:value={actor[attrs.getters[1]] as number}
-        onchange={fieldOnChange(attrs.setters[1])}
-        step={attrs.step}
-      ><span class="axis y">Y</span></NumberField>
-      {:else if type === 'float3'}
-      <NumberField
-        bind:value={actor[attrs.getters[0]] as number}
-        onchange={fieldOnChange(attrs.setters[0])}
-        step={attrs.step}
-      ><span class="axis x">X</span></NumberField>
-      <NumberField
-        bind:value={actor[attrs.getters[1]] as number}
-        onchange={fieldOnChange(attrs.setters[1])}
-        step={attrs.step}
-      ><span class="axis y">Y</span></NumberField>
-      <NumberField
-        bind:value={actor[attrs.getters[2]] as number}
-        onchange={fieldOnChange(attrs.setters[2])}
-        step={attrs.step}
-      ><span class="axis z">Z</span></NumberField>
-      {:else if type === 'color'}
-      <!-- TODO: replace with handmade color picker -->
-      <input
-        type="color"
-        alpha="true"
-        value={toRGBA(...attrs.getters.map(getter => actor[getter] as number))}
-        onchange={ev => callMethod(attrs.setter, ...fromHex((ev.target as HTMLSelectElement).value))}
-      >
-      {:else if type === 'enum'}
-      <select
-        bind:value={actor[attrs.getter] as string}
-        onchange={(ev) => callMethod(attrs.setter, (ev.target as HTMLSelectElement).value)}
-      >
-        {#each attrs.values as value}
-        <option {value}>{value}</option>
-        {/each}
-      </select>
+
+    <div class="field" class:favorited={fav} style:--fav-index={getFavoriteIdx(field.displayName)}>
+      <div
+        class="field-button"
+        onclick={() =>
+          !fav
+            ? addToFavorites(field.displayName)
+            : removeFromFavorites(field.displayName)
+        }>
+        {#if fav}
+        <!-- doing 0.5em and hoping it's equal to 1ex here is finnicky as fuck -->
+        <StarIcon size="0.5x"></StarIcon>
+        {:else}
+        •
+        {/if}
+      </div>
+      <div class="name">{field.displayName}</div>
+      
+      <div class="knobs">
+        {#if type === 'boolean'}
+        <input type="checkbox"
+          bind:checked={actor[attrs.getter] as boolean}
+          onchange={(ev) =>
+            callMethod(attrs.setter, attrs.setterAsNumber
+              ? (ev.target as HTMLInputElement).checked ? 1 : 0
+              : (ev.target as HTMLInputElement).checked
+            )
+          }
+        >
+        {:else if type === 'float'}
+        <NumberField
+          bind:value={actor[attrs.getter] as number}
+          onchange={fieldOnChange(attrs.setter)}
+          step={attrs.step}
+        ></NumberField>
+        {:else if type === 'float2'}
+        <NumberField
+          bind:value={actor[attrs.getters[0]] as number}
+          onchange={fieldOnChange(attrs.setters[0])}
+          step={attrs.step}
+        ><span class="axis x">X</span></NumberField>
+        <NumberField
+          bind:value={actor[attrs.getters[1]] as number}
+          onchange={fieldOnChange(attrs.setters[1])}
+          step={attrs.step}
+        ><span class="axis y">Y</span></NumberField>
+        {:else if type === 'float3'}
+        <NumberField
+          bind:value={actor[attrs.getters[0]] as number}
+          onchange={fieldOnChange(attrs.setters[0])}
+          step={attrs.step}
+        ><span class="axis x">X</span></NumberField>
+        <NumberField
+          bind:value={actor[attrs.getters[1]] as number}
+          onchange={fieldOnChange(attrs.setters[1])}
+          step={attrs.step}
+        ><span class="axis y">Y</span></NumberField>
+        <NumberField
+          bind:value={actor[attrs.getters[2]] as number}
+          onchange={fieldOnChange(attrs.setters[2])}
+          step={attrs.step}
+        ><span class="axis z">Z</span></NumberField>
+        {:else if type === 'color'}
+        <!-- TODO: replace with handmade color picker -->
+        <input
+          type="color"
+          alpha="true"
+          value={toRGBA(...attrs.getters.map(getter => actor[getter] as number))}
+          onchange={ev => callMethod(attrs.setter, ...fromHex((ev.target as HTMLSelectElement).value))}
+        >
+        {:else if type === 'enum'}
+        <select
+          bind:value={actor[attrs.getter] as string}
+          onchange={(ev) => callMethod(attrs.setter, (ev.target as HTMLSelectElement).value)}
+        >
+          {#each attrs.values as value}
+          <option {value}>{value}</option>
+          {/each}
+        </select>
+        {:else if type === 'mod'}
+          {#if attrs.modType === 'percent'}
+          <NumberField
+            bind:value={actor[`m_${attrs.name}`] as number}
+            onchange={(a) => setMod(attrs.name, a, -1)}
+            step={0.1}
+          ></NumberField>
+          {:else if attrs.modType === 'bool'}
+          <input type="checkbox"
+            bind:checked={actor[`m_${attrs.name}`] as boolean}
+            onchange={(ev) => setMod(attrs.name, (ev.target as HTMLInputElement).checked)}
+          >
+          {:else if attrs.modType === 'enum'}
+          <select
+            bind:value={actor[`m_${attrs.name}`] as string}
+            onchange={(ev) => setMod(attrs.name, (ev.target as HTMLSelectElement).value)}
+          >
+            {#each attrs.values as value}
+            <option {value}>{value.split('_')[1]}</option>
+            {/each}
+          </select>
+          {/if}
+        {/if}
+      </div>
+
+      {#if type === 'float3' && attrs.xyDragSetters}
+      <DragButton scale={1.5} onmove={(x, y) => {
+        if (x !== 0) callMethod(attrs.xyDragSetters![0], x);
+        if (y !== 0) callMethod(attrs.xyDragSetters![1], y);
+      }}></DragButton>
       {/if}
     </div>
-
-    {#if type === 'float3' && attrs.xyDragSetters}
-    <DragButton scale={1.5} onmove={(x, y) => {
-      if (x !== 0) callMethod(attrs.xyDragSetters![0], x);
-      if (y !== 0) callMethod(attrs.xyDragSetters![1], y);
-    }}></DragButton>
-    {:else}
-    <div></div>
-    {/if}
     {/each}
   </div>
 </details>

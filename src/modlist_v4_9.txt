@@ -1,0 +1,534 @@
+// features minor typo fixes; so this is not 1:1 to https://ulluriaq.dev/notitg/modlist.txt
+
+// example formats: ModName (boneless): args; default value; FromString usage info: ModName, aliases; default percentage;
+// ModName (boneless): args; values: list of accepted values; default value; FromString usage info: ModNames; percentage map to values; default percentage;
+// Notes:
+//      if FromString ModName has a capital `N` at the end, replace `N` with a number from 0 to 7 to access it's column specific variant
+//      ModName (boneless) is Case Sensitive, ModName (FromString) is case insensitive
+//      Boneless mods use float percentages: 0 meaning 0%, 1 meaning 100%, FromString mods use percentage values
+//      If using a template such as The Mirin Template, data on the FromString half is what data you will use in your file
+//      The Boneless side of mods is subject to change as I (Ky_Dash) work on finalizing it for a future version of NotITG, use at own risk
+
+Enums:
+    ColorType:      ColorType_Red, ColorType_Blue, ColorType_Green, ColorType_Alpha
+    CullMode:       CullMode_None, CullMode_Front, CullMode_Back
+    HoldType:       HoldType_Default, HoldType_Orient, HoldType_Orient_Inaccurate
+    ModTimerType:   ModTimerType_Game, ModTimerType_Beat, ModTimerType_Song
+    NoteType:       NoteType_Tap, NoteType_HoldHead, NoteType_Mine, NoteType_Hold
+    ScoreDisplay:   ScoreDisplay_Add, ScoreDisplay_Subtract, ScoreDisplay_Average
+
+Alternate:              float percent, float approach; default: 0;                              FromString: alternate; default: 0%;
+ApproachType:           bool enable; default: false;                                            FromString: approachtype: <=0% = disable, >0% = enable; default: 0%;
+// When ArrowCull is set to nil or 0%, notes will use the cull state set by the noteskin (usually CullMode_Back)
+ArrowCull:              enum CullMode or nil; default: nil;                                     FromString: arrowcull; <=0% = default, >0% = CullMode_Back, >100% = CullMode_Front, >200% CullMode_None; default: 0%;
+ArrowPath:              float percent, float approach; default: 0;                              FromString: arrowpath; default: 0%;
+ArrowPathCol:           int column, float percent, float approach; default: 0;                  FromString: arrowpathN; default: 0%;
+ArrowPathDrawSize:      float percent, float approach; default: 0;                              FromString: arrowpathdrawsize, arrowpathdrawsizefront, arrowpathdrawdistance, arrowpathdrawdistancefront; default: 0%;
+ArrowPathDrawSizeBack:  float percent, float approach; default: 0;                              FromString: arrowpathdrawsizeback, arrowpathdrawdistanceback; default: 0%;
+ArrowPathGrain:         float percent, float approach; default: 4;                              FromString: arrowpathgrain, arrowpathgranulate; default: 400%;
+ArrowPathWidth:         float percent, float approach; default: 0;                              FromString: arrowpathwidth, arrowpathsize, arrowpathgirth; default: 0%;
+ArrowPathWidthCol:      int column, float percent, float approach; default: 0;                  FromString: arrowpathwidthN, arrowpathsizeN, arrowpathgirthN; default: 0%;
+Asymptote:              float percent, float approach; default: 0;                              FromString: asymptote; default: 0%;
+AsymptoteOffset:        float percent, float approach; default: 0;                              FromString: asymptoteoffset; default: 0%;
+AsymptoteScale:         float percent, float approach; default: 0;                              FromString: asymptotescale, asymptotesize; default: 0%;
+AttenuateX:             float percent, float approach; default: 0;                              FromString: attenuatex, attenuate; default: 0%;
+AttenuateXOffset:       float percent, float approach; default: 0;                              FromString: attenuatexoffset attenuateoffset; default: 0%;
+AttenuateY:             float percent, float approach; default: 0;                              FromString: attenuatey; default: 0%;
+AttenuateYOffset:       float percent, float approach; default: 0;                              FromString: attenuateyoffset; default: 0%;
+AttenuateZ:             float percent, float approach; default: 0;                              FromString: attenuatez; default: 0%;
+AttenuateZOffset:       float percent, float approach; default: 0;                              FromString: attenuatezoffset; default: 0%;
+Beat:                   float percent, float approach; default: 0;                              FromString: beat; default: 0%;
+BeatCol:                int column, float percent, float approach; default 0;                   FromString: beatN; default: 0%;
+BeatCap:                bool enable; default: true;                                             FromString: beatcap; <=0% = enable, >0% = disable; default: 0%;
+BeatCapCol:             int col, bool enable; default: true;                                    FromString: beatcapN; <=0% = enable, >0% = disable; default: 0%;
+BeatMult:               float percent, float approach; default: 0;                              FromString: beatmult; default: 0%;
+BeatMultCol:            int column, float percent, float approach; default: 0;                  FromString: beatmultN; default: 0%;
+BeatOffset:             float percent, float approach; default: 0;                              FromString: beatoffset; default: 0%;
+BeatOffsetCol:          int column, float percent, float approach; default: 0;                  FromString: beatoffsetN; default: 0%;
+BeatPeriod:             float percent, float approach; default: 0;                              FromString: beatperiod, beatsize; default: 0%;
+BeatPeriodCol:          int column, float percent, float approach; default: 0;                  FromString: beatperiodN, beatsizeN; default: 0%;
+BeatY:                  float percent, float approach; default: 0;                              FromString: beaty; default: 0%;
+BeatYCol:               int column, float percent, float approach; default: 0;                  FromString: beatyN; default: 0%;
+BeatYCap:               bool enable; default: true;                                             FromString: beatycap, beatcapy; <=0% = enable, >0% = disable; default: 0%;
+BeatYCapCol:            int column, bool enable; default: true;                                  FromString: beatycapN, beatcapyN; <=0% = enable, >0% = disable; default: 0%;
+BeatYMult:              float percent, float approach; default: 0;                              FromString: beatymult; default: 0%;
+BeatYMultCol:           int column, float percent, float approach; default: 0;                  FromString: beatymultN; default: 0%;
+BeatYOffset:            float percent, float approach; default: 0;                              FromString: beatyoffset; default: 0%;
+BeatYOffsetCol:         int column, float percent, float approach; default: 0;                  FromString: beatyoffsetN; default: 0%;
+BeatYPeriod:            float percent, float approach; default: 0;                              FromString: beatyperiod, beatysize; default: 0%;
+BeatYPeriodCol:         int column, float percent, float approach; default: 0;                  FromString: beatyperiodN, beatysizeN; default: 0%;
+BeatZ:                  float percent, float approach; default: 0;                              FromString: beatz; default: 0%;
+BeatZCol:               int column, float percent, float approach; default: 0;                  FromString: beatzN; default: 0%;
+BeatZCap:               bool enable; default: true;                                             FromString: beatzcap, beatcapz; <=0% = enable, >0% = disable; default: 0%;
+BeatZCapCol:            int column, bool enable; default: true;                                  FromString: beatzcapN, beatcapzN; <=0% = enable, >0% = disable; default: 0%;
+BeatZMult:              float percent, float approach; default: 0;                              FromString: beatzmult; default: 0%;
+BeatZMultCol:           int column, float percent, float approach; default: 0;                  FromString: beatzmultN; default: 0%;
+BeatZOffset:            float percent, float approach; default: 0;                              FromString: beatzoffset; default: 0%;
+BeatZOffsetCol:         int column, float percent, float approach; default: 0;                  FromString: beatzoffsetN; default: 0%;
+BeatZPeriod:            float percent, float approach; default: 0;                              FromString: beatzperiod, beatzsize; default: 0%;
+BeatZPeriodCol:         int column, float percent, float approach; default: 0;                  FromString: beatzperiodN, beatzsizeN; default: 0%;
+Blind:                  bool enable; default false;                                             FromString: blind; <=0% = enable, >0% = disable; default: 0%;
+Blink:                  float percent, float approach; default: 0;                              FromString: blink; default: 0%
+BlinkColor:             enum ColorType, float percent, float approach; default: 0;              ColorType_Red   FromString: blinkred, blinkr; default: 0%;
+                                                                                                ColorType_Blue  FromString: blinkblue, blinkb; default: 0%;
+                                                                                                ColorType_Green FromString: blinkgreen, blinkg; default: 0%;
+Boomerang:              float percent, float approach; default: 0;                              FromString: boomerang; default: 0%;
+Boost:                  float percent, float approach; default: 0;                              FromString: boost; default: 0%;
+BoostCol:               int column, float percent, float approach; default: 0;                  FromString: boostN; default: 0%;
+Bounce:                 float percent, float approach: default: 0;                              FromString: bounce; default: 0%;
+BounceOffset:           float percent, float approach: default: 0;                              FromString: bounceoffset; default: 0%;
+BouncePeriod:           float percent, float approach: default: 0;                              FromString: bounceperiod; default: 0%;
+BounceZ:                float percent, float approach: default: 0;                              FromString: bouncez; default: 0%;
+BounceZOffset:          float percent, float approach: default: 0;                              FromString: bouncezoffset; default: 0%;
+BounceZPeriod:          float percent, float approach: default: 0;                              FromString: bouncezperiod; default: 0%;
+Brake:                  float percent, float approach; default: 0;                              FromString: brake, land; default: 0%;
+BrakeCol:               int column, float percent, float approach; default: 0;                  FromString: brakeN, landN; default: 0%;
+Bumpy:                  float percent, float approach; default: 0;                              FromString: bumpy, bumpyz; default: 0%;
+BumpyCol:               int column, float percent, float approach; default: 0;                  FromString: bumpyN, bumpyzN; default: 0%;
+BumpyOffset:            float percent, float approach; default: 0;                              FromString: bumpyoffset, bumpyzoffset; default: 0%;
+BumpyOffsetCol:         int column, float percent, float approach; default: 0;                  FromString: bumpyoffsetN, bumpyzoffsetN; default: 0%;
+BumpyPeriod:            float percent, float approach; default: 0;                              FromString: bumpyperiod, bumpysize, bumpyzperiod, bumpyzsize; default: 0%;
+BumpyPeriodCol:         int column, float percent, float approach; default: 0;                  FromString: bumpyperiodN, bumpysizeN, bumpyzperiodN, bumpyzsizeN; default: 0%;
+BumpyX:                 float percent, float approach; default: 0;                              FromString: bumpyz; default: 0%;
+BumpyXCol:              int column, float percent, float approach; default: 0;                  FromString: bumpyxN; default: 0%;
+BumpyXOffset:           float percent, float approach; default: 0;                              FromString: bumpyxoffset; default: 0%;
+BumpyXOffsetCol:        int column, float percent, float approach; default: 0;                  FromString: bumpyxoffsetN; default: 0%;
+BumpyXPeriod:           float percent, float approach; default: 0;                              FromString: bumpyxperiod, bumpyxsize; default: 0%;
+BumpyXPeriodCol:        int column, float percent, float approach; default: 0;                  FromString: bumpyxperiodN, bumpyxsizeN; default: 0%;
+BumpyY:                 float percent, float approach; default: 0;                              FromString: bumpyy; default: 0%;
+BumpyYCol:              int column, float percent, float approach; default: 0;                  FromString: bumpyyN; default: 0%;
+BumpyYOffset:           float percent, float approach; default: 0;                              FromString: bumpyyoffset; default: 0%;
+BumpyYOffsetCol:        int column, float percent, float approach; default: 0;                  FromString: bumpyyoffsetN; default: 0%;
+BumpyYPeriod:           float percent, float approach; default: 0;                              FromString: bumpyyperiod, bumpyysize; default: 0%;
+BumpyYPeriodCol:        int column, float percent, float approach; default: 0;                  FromString: bumpyyperiodN, bumpyysizeN; default: 0%;
+Centered:               float percent, float approach; default: 0;                              FromString: centered, converge; default: 0%;
+CenteredCol:            int column, float percent, float approach; default: 0;                  FromString: centeredcolN, convergeN; default: 0%;
+CenteredPath:           float percent, float approach; default: 0;                              FromString: centeredpath, centered2; default: 0%;
+CenteredPathCol:        int column, float percent, float approach; default: 0;                  FromString: centeredpathN; default: 0%;
+Confusion:              float percent, float approach; default: 0;                              FromString: confusion, confusionz; default: 0%;
+ConfusionOffset:        float percent, float approach; default: 0;                              FromString: confusionoffset, confusionzoffset; default: 0%;
+ConfusionOffsetCol:     int column, float percent, float approach; default: 0;                  FromString: confusionoffsetN, confusionzoffsetN; default: 0%;
+ConfusionX:             float percent, float approach; default: 0;                              FromString: confusionx; default: 0%;
+ConfusionXOffset:       float percent, float approach; default: 0;                              FromString: confusionxoffset; default: 0%;
+ConfusionXOffsetCol:    int column, float percent, float approach; default: 0;                  FromString: confusionxoffsetN; default: 0%;
+ConfusionY:             float percent, float approach; default: 0;                              FromString: confusiony; default: 0%;
+ConfusionYOffset:       float percent, float approach; default: 0;                              FromString: confusionyoffset; default: 0%;
+ConfusionYOffsetCol:    int column, float percent, float approach; default: 0;                  FromString: confusionyoffsetN; default: 0%;
+CosClip:                float percent, float approach; default: 0;                              FromString: cosclip; default: 0%;
+Cosecant:               bool enable; default: false;                                            FromString: cosecant, cosec, glitchytan; <=0% = disable, >0% = enable; default: 0%;
+Cover:                  float percent, float approach; default: 0;                              FromString: cover; default: 0%;
+Cross:                  float percent, float approach; default: 0;                              FromString: cross; default: 0%;
+CubicX:                 float percent, float approach; default: 0;                              FromString: cubicx; default: 0%;
+CubicXOffset:           float percent, float approach; default: 0;                              FromString: cubicxoffset; default: 0%;
+CubicY:                 float percent, float approach; default: 0;                              FromString: cubicy; default: 0%;
+CubicYOffset:           float percent, float approach; default: 0;                              FromString: cubicyoffset; default: 0%;
+CubicZ:                 float percent, float approach; default: 0;                              FromString: cubicz; default: 0%;
+CubicZOffset:           float percent, float approach; default: 0;                              FromString: cubiczoffset; default: 0%;
+// FromString Dark and DarkN follows the glow fade of stealth, meaning that values below 50% are the same as 0%.
+// To normalize the values from 0-100 instead of 50-100, use this calculation when passing in your percentage: percentage / 2 + 50
+Dark:                   float percent, float approach; default: 0;                              FromString: dark; <50% = 0%; default: 0%;
+DarkCol:                int column, float percent, float approach; default: 0;                  FromString: darkN; <50% = 0%; default: 0%;
+Digital:                float percent, float approach; default: 0;                              FromString: digital; default: 0%;
+DigitalOffset:          float percent, float approach; default: 0;                              FromString: digitaloffset; default: 0%;
+DigitalPeriod:          float percent, float approach; default: 0;                              FromString: digitalperiod; default: 0%;
+DigitalSteps:           float percent, float approach; default: 0;                              FromString: digitalsteps; default: 0%;
+DigitalZ:               float percent, float approach; default: 0;                              FromString: digitalz; default: 0%;
+DigitalZOffset:         float percent, float approach; default: 0;                              FromString: digitalzoffset; default: 0%
+DigitalZPeriod:         float percent, float approach; default: 0;                              FromString: digitalzperiod; default: 0%
+DigitalZSteps:          float percent, float approach; default: 0;                              FromString: digitalzsteps; default: 0%;
+DisableMines:           bool enable; default: false;                                            FromString: disablemines; <=0% = disable, >0% = enable; default: 0%;
+Distant:                float percent, float approach; default: 0;                              FromString: distant; default: 0%;
+Dizzy:                  float percent, float approach; default: 0;                              FromString: dizzy; default: 0%;
+DizzyCol:               int column, float percent, float approach; default: 0;                  FromString: dizzyN; default: 0%;
+DizzyHolds:             bool enable; default: false;                                            FromString: dizzyholds; <=0% = disable, >0% = enable; default: 0%;
+DrawSize:               float percent, float approach; default: 0;                              FromString: drawsize, drawsizefront, drawdistance, drawdistancefront; default: 0%;
+DrawSizeBack:           float percent, float approach; default: 0;                              FromString: drawsizeback, drawdistanceback; default: 0%;
+Drunk:                  float percent, float approach; default: 0;                              FromString: drunk; default: 0%;
+DrunkCol:               int column, float percent, float approach; default: 0;                  FromString: drunkN; default: 0%;
+DrunkOffset:            float percent, float approach; default: 0;                              FromString: drunkoffset; default: 0%;
+DrunkOffsetCol:         int column, float percent, float approach; default: 0;                  FromString: drunkoffsetN; default: 0%;
+DrunkPeriod:            float percent, float approach; default: 0;                              FromString: drunkperiod, drunksize; default: 0%;
+DrunkPeriodCol:         int column, float percent, float approach; default: 0;                  FromString: drunkperiodN, drunksizeN; default: 0%;
+DrunkSpacing:           float percent, float approach; default: 0;                              FromString: drunkspacing; default: 0%;
+DrunkSpacingCol:        int column, float percent, float approach; default: 0;                  FromString: drunkspacingN; default: 0%;
+DrunkSpeed:             float percent, float approach; default: 0;                              FromString: drunkspeed; default: 0%;
+DrunkSpeedCol:          int column, float percent, float approach; default: 0;                  FromString: drunkspeedN; default: 0%;
+DrunkY:                 float percent, float approach; default: 0;                              FromString: drunky; default: 0%;
+DrunkYCol:              int column, float percent, float approach; default: 0;                  FromString: drunkyN; default: 0%;
+DrunkYOffset:           float percent, float approach; default: 0;                              FromString: drunkyoffset; default: 0%;
+DrunkYOffsetCol:        int column, float percent, float approach; default: 0;                  FromString: drunkyoffsetN; default: 0%;
+DrunkYPeriod:           float percent, float approach; default: 0;                              FromString: drunkyperiod, drunkysize; default: 0%;
+DrunkYPeriodCol:        int column, float percent, float approach; default: 0;                  FromString: drunkyperiodN, drunkysizeN; default: 0%;
+DrunkYSpacing:          float percent, float approach; default: 0;                              FromString: drunkyspacing; default: 0%;
+DrunkYSpacingCol:       int column, float percent, float approach; default: 0;                  FromString: drunkyspacingN; default: 0%;
+DrunkYSpeed:            float percent, float approach; default: 0;                              FromString: drunkyspeed; default: 0%;
+DrunkYSpeedCol:         int column, float percent, float approach; default: 0;                  FromString: drunkyspeedN; default: 0%;
+DrunkZ:                 float percent, float approach; default: 0;                              FromString: drunkz; default: 0%;
+DrunkZCol:              int column, float percent, float approach; default: 0;                  FromString: drunkzN; default: 0%;
+DrunkZOffset:           float percent, float approach; default: 0;                              FromString: drunkzoffset; default: 0%;
+DrunkZOffsetCol:        int column, float percent, float approach; default: 0;                  FromString: drunkzoffsetN; default: 0%;
+DrunkZPeriod:           float percent, float approach; default: 0;                              FromString: drunkzperiod, drunkzsize; default: 0%;
+DrunkZPeriodCol:        int column, float percent, float approach; default: 0;                  FromString: drunkzperiodN, drunkzsizeN; default: 0%;
+DrunkZSpacing:          float percent, float approach; default: 0;                              FromString: drunkzspacing; default: 0%;
+DrunkZSpacingCol:       int column, float percent, float approach; default: 0;                  FromString: drunkzspacingN; default: 0%;
+DrunkZSpeed:            float percent, float approach; default: 0;                              FromString: drunkzspeed; default: 0%;
+DrunkZSpeedCol:         int column, float percent, float approach; default: 0;                  FromString: drunkzspeedN; default: 0%;
+Expand:                 float percent, float approach; default: 0;                              FromString: expand; default: 0%;
+ExpandPeriod:           float percent, float approach; default: 0;                              FromString: expandperiod, expandsize; default: 0%;
+Flip:                   float percent, float approach; default: 0;                              FromString: flip; default: 0%;
+Grain:                  float percent, float approach; default: 4;                              FromString: grain, granulate; default: 400%;
+Hallway:                float percent, float approach; default: 0;                              FromString: hallway; default: 0%;
+Hidden:                 float percent, float approach; default: 0;                              FromString: hidden; default: 0%
+HiddenOffset:           float percent, float approach; default: 0;                              FromString: hiddenoffset; default: 0%
+HiddenColor:            enum ColorType, float percent, float approach; default: 0;              ColorType_Red   FromString: hiddenred, hiddenr; default: 0%;
+                                                                                                ColorType_Blue  FromString: hiddenblue, hiddenb; default: 0%;
+                                                                                                ColorType_Green FromString: hiddengreen, hiddeng; default: 0%;
+HiddenOffsetColor:      enum ColorType, float percent, float approach; default: 0;              ColorType_Red   FromString: hiddenredoffset, hiddenro; default: 0%;
+                                                                                                ColorType_Blue  FromString: hiddenblueoffset, hiddenbo; default: 0%;
+                                                                                                ColorType_Green FromString: hiddengreenoffset, hiddengo; default: 0%;
+HideHoldJudge:          bool enable: default: false;                                            FromString: hideholdjudge, noholdjudge, halgun; <=0% = disable, >0% = enable; default: 0%;
+// HideNoteFlash is a shorthand of HideNoteFlashCol, passing all values to column 0 to 7
+HideNoteFlash:          bool enable; default: false;                                            FromString: hidenoteflash, hidenoteflashes; <=0% = disable, >0% = enable; default: 0%
+HideNoteFlashCol:       int column, bool enable; default: false;                                FromString: hidenoteflashN, hidenoteflashesN; <=0% = disable, >0% = enable; default: 0%
+HideNotePress:          bool enable; default false;                                             FromString: hidenoteflash, hidenoteflashes; <=0% = disable, >0% = enable; default: 0%
+HideNotePressCol:       int column, bool enable; default: false;                                FromString: hidenoteflashN, hidenoteflashesN; <=0% = disable, >0% = enable; default: 0%
+HoldCull:               enum CullMode; default: CullMode_None;                                  FromString: holdcull; <=0% = CullMode_None, >0% = CullMode_Front, >100% = CullMode_Back; default: 0%;
+// HoldTiny is a shorthand of HoldTinyCol, passing all values to column 0 to 7, holdgirth is a FromString alias that flips the passed in percentage
+HoldTiny:               float percent, float approach; default: 0;                              FromString: holdtiny, holdgirth (% = % * -1); default: 0%;
+HoldTinyCol:            int column, float percent, float approach; default: 0;                  FromString: holdtinyN, holdgirthN (% = % * -1); default: 0%;
+HoldType:               enum HoldType; default: HoldType_Default;                               FromString: holdtype, spiralholds; ==0% = HoldType_Default, <0% = HoldType_Orient, >0% = HoldType_Orient_Inaccurate; default: 0%;
+Incoming:               float percent, float approach; default: 0;                              FromString: incoming; default: 0%;
+Invert:                 float percent, float approach; default: 0;                              FromString: invert; default: 0%;
+JudgeScale:             float percent, float approach; default: 0;                              FromString: judgescale, timing; default: 0%;
+ExtendHolds:            float percent, float approach; default: 0;                              FromString: extendholds, longholds, longboy, longboys; default: 0%;
+Mini:                   float percent, float approach; default: 0;                              FromString: mini; default: 0%;
+ModTimer:               enum ModTimerType; default: ModTimerType_Game;                          FromString: modtimer, globalmodtimer, timer; <50% = ModTimerType_Game, >=50% = ModTimerType_Song, >=150% = ModTimerType_Beat; default: 0%;
+ModTimerMult:           float percent, float approach; default: 0;                              FromString: modtimermult, globalmodtimermult, timermult; default: 0%;
+ModTimerOffset:         float percent, float approach; default: 0;                              FromString: modtimeroffset, globalmodtimeroffset, timeroffset; default: 0%;
+// MoveX is a shorthand of MoveXCol, passing all values to column 0 to 7
+MoveX:                  float percent, float approach; default: 0;                              FromString: movex; default: 0%;
+MoveXCol:               int column, float percent, float approach; default: 0;                  FromString: movexN; default: 0%;
+// MoveY is a shorthand of MoveYCol, passing all values to column 0 to 7
+MoveY:                  float percent, float approach; default: 0;                              FromString: movey; default: 0%;
+MoveYCol:               int column, float percent, float approach; default: 0;                  FromString: moveyN; default: 0%;
+// MoveZ is a shorthand of MoveZCol, passing all values to column 0 to 7
+MoveZ:                  float percent, float approach; default: 0;                              FromString: movez; default: 0%;
+MoveZCol:               int column, float percent, float approach; default: 0;                  FromString: movezN; default: 0%;
+NoteStealth:            enum NoteType, float percent, float approach: default: 0;               NoteType_Tap        FromString: tapstealth, hidetaps; default: 0%;
+                                                                                                NoteType_HoldHead   FromString: holdheadstealth, hideholdheads; default: 0%;
+                                                                                                NoteType_Hold       FromString: holdstealth, hideholds; default: 0%;
+                                                                                                NoteType_Mine       FromString: minestealth, hidemines; default: 0%;
+NoteStealthCol:         int column, enum NoteType, float percent, float approach: default: 0;   NoteType_Tap        FromString: tapstealth, hidetaps; default: 0%;
+                                                                                                NoteType_HoldHead   FromString: holdheadstealth, hideholdheads; default: 0%;
+                                                                                                NoteType_Hold       FromString: holdstealth, hideholds; default: 0%;
+                                                                                                NoteType_Mine       FromString: minestealth, hidemines; default: 0%;
+NoteSkewX:              float percent, float approach; default: 0;                              FromString: noteskewx, noteskew; default: 0%;
+NoteSkewXCol:           int column, float percent, float approach; default: 0;                  FromString: noteskewxN, noteskewN; default: 0%;
+NoteSkewY:              float percent, float approach; default: 0;                              FromString: noteskewy; default: 0%;
+NoteSkewYCol:           int column, float percent, float approach; default: 0;                  FromString: noteskewyN; default: 0%;
+Orient:                 float percent, float approach; default: 0;                              FromString: orient, orientz; default: 0%;
+OrientOffset:           float percent, float approach; default: 0;                              FromString: orientoffset, orientzoffset; default: 0%;
+OrientX:                float percent, float approach; default: 0;                              FromString: orientx; default: 0%;
+OrientXOffset:          float percent, float approach; default: 0;                              FromString: orientxoffset; default: 0%;
+OrientY:                float percent, float approach; default: 0;                              FromString: orienty; default: 0%;
+OrientYOffset:          float percent, float approach; default: 0;                              FromString: orientyoffset; default: 0%;
+// Overhead will be true as long as none of the following modifiers have a non 0 value: Incoming, Hallway, Distant, Space
+Overhead:               bool enable, float approach; default: true;                             FromString: overhead; default: ;
+ParabolaX:              float percent, float approach; default: 0;                              FromString: parabolax; default: 0%;
+ParabolaXOffset:        float percent, float approach; default: 0;                              FromString: parabolaxoffset; default: 0%;
+ParabolaY:              float percent, float approach; default: 0;                              FromString: parabolay; default: 0%;
+ParabolaYOffset:        float percent, float approach; default: 0;                              FromString: parabolayoffset; default: 0%;
+ParabolaZ:              float percent, float approach; default: 0;                              FromString: parabolaz; default: 0%;
+ParabolaZOffset:        float percent, float approach; default: 0;                              FromString: parabolazoffset; default: 0%;
+Passmark:               float percent, float approach; default: 0;                              FromString: passmark; default: 0%;
+// Pulse is a shorthand to PulseInner and PulseOuter, passing all values to the two modifiers
+Pulse:                  float percent, float approach; default: 0;                              FromString: pulse; default: 0%;
+PulseInner:             float percent, float approach; default: 0;                              FromString: pulseinner; default: 0%;
+PulseOuter:             float percent, float approach; default: 0;                              FromString: pulseouter; default: 0%;
+PulseOffset:            float percent, float approach; default: 0;                              FromString: pulseoffset; default: 0%;
+PulsePeriod:            float percent, float approach; default: 0;                              FromString: pulseperiod; default: 0%;
+Randomize:              bool enable; default: false;                                            FromString: randomize; <100% = disable, >=100% = enable; default: 0%;
+RandomizeOffset:        float percent, float approach; default: 0;                              FromString: randomizeoffset; default: 0%;
+RandomSpeed:            float percent, float approach; default: 0;                              FromString: randomspeed; default: 0%;
+// RandomVanish is a shorthand to Randomize and Vanish, passing all values to the two modifiers (any values equal or above 1 signify true)
+RandomVanish:           float percent, float approach; default: 0;                              FromString: randomvanish; default: 0%;
+// RandomVanish is a shorthand to RandomizeOffset and VanishOffset, passing all values to the two modifiers
+RandomVanishOffset:     float percent, float approach; default: 0;                              FromString: randomvanishoffset; default: 0%;
+// ReceptorZBuffer is a shorthand of ReceptorZBufferCol, passing all values to column 0 to 7, those two modifiers currently do nothing
+ReceptorZBuffer:        bool enable; default: false;                                            FromString: receptorzbuffer; <=0% = disable, >0% = enable; default: 0%;
+ReceptorZBufferCol:     int column, bool enable; default: false;                                FromString: receptorzbufferN; <=0% = disable, >0% = enable; default: 0%;
+Reverse:                float percent, float approach; default: 0;                              FromString: reverse; default: 0%;
+ReverseCol:             int column, float percent, float approach; default: 0;                  FromString: reverseN; default: 0%;
+Roll:                   float percent, float approach; default: 0;                              FromString: roll; default: 0%;
+RollCol:                int column, float percent, float approach; default: 0;                  FromString: rollN; default: 0%;
+Sawtooth:               float percent, float approach; default: 0;                              FromString: sawtooth; default: 0%;
+SawtoothCol:            int column, float percent, float approach; default: 0;                  FromString: sawtoothN; default: 0%;
+SawtoothOffset:         float percent, float approach; default: 0;                              FromString: sawtoothoffset; default: 0%;
+SawtoothOffsetCol:      int column, float percent, float approach; default: 0;                  FromString: sawtoothoffsetN; default: 0%;
+SawtoothPeriod:         float percent, float approach; default: 0;                              FromString: sawtoothperiod, sawtoothsize; default: 0%;
+SawtoothPeriodCol:      int column, float percent, float approach; default: 0;                  FromString: sawtoothperiodN, sawtoothsizeN; default: 0%;
+SawtoothZ:              float percent, float approach; default: 0;                              FromString: sawtoothz; default: 0%;
+SawtoothZCol:           int column, float percent, float approach; default: 0;                  FromString: sawtoothzN; default: 0%;
+SawtoothZOffset:        float percent, float approach; default: 0;                              FromString: sawtoothzoffset; default: 0%;
+SawtoothZOffsetCol:     int column, float percent, float approach; default: 0;                  FromString: sawtoothzoffsetN; default: 0%;
+SawtoothZPeriod:        float percent, float approach; default: 0;                              FromString: sawtoothzperiod, sawtoothzsize; default: 0%;
+SawtoothZPeriodCol:     int column, float percent, float approach; default: 0;                  FromString: sawtoothzperiodN, sawtoothzsizeN; default: 0%;
+//Any FromString variant of ScoreDisplay will overwrite the previously set ScoreDisplay modifier
+ScoreDisplay:           enum ScoreDisplay; default: ScoreDisplay_Add;                           ScoreDisplay_Add        FromString: addscore; default: ;
+                                                                                                ScoreDisplay_Subtract   FromString: subtractscore; default: ;
+                                                                                                ScoreDisplay_Average    FromString: averagescore; default: ;
+ScreenFilter:           float percent, float approach; default: 0;                              FromString: screenfilter; default: 0%;
+// ScrollSpeedMult is a shorthand of ScrollSpeedMultCol, passing all values to column 0 to 7
+ScrollSpeedMult:        float percent, float approach; default: 1;                              FromString: scrollspeedmult, plannedomspeed; default: 100%;
+ScrollSpeedMultCol:     int column, float percent, float approach; default: 1;                  FromString: scrollspeedmultN, plannedomspeedN; default: 100%;
+ShrinkLinear:           float percent, float approach; default: 0;                              FromString: shrinklinear; default: 0%;
+ShrinkLinearX:          float percent, float approach; default: 0;                              FromString: shrinklinearx; default: 0%;
+ShrinkLinearY:          float percent, float approach; default: 0;                              FromString: shrinklineary; default: 0%;
+ShrinkLinearZ:          float percent, float approach; default: 0;                              FromString: shrinklinearz; default: 0%;
+ShrinkMult:             float percent, float approach; default: 0;                              FromString: shrinkmult; default: 0%;
+ShrinkMultX:            float percent, float approach; default: 0;                              FromString: shrinkmultx; default: 0%;
+ShrinkMultY:            float percent, float approach; default: 0;                              FromString: shrinkmulty; default: 0%;
+ShrinkMultZ:            float percent, float approach; default: 0;                              FromString: shrinkmultz; default: 0%;
+SinClip:                float percent, float approach; default: 0;                              FromString: sinclip; default: 0%;
+Space:                  float percent, float approach; default: 0;                              FromString: space; default: 0%;
+SpiralX:                float percent, float approach; default: 0;                              FromString: spiralx; default: 0%;
+SpiralXOffset:          float percent, float approach; default: 0;                              FromString: spiralxoffset; default: 0%;
+SpiralXPeriod:          float percent, float approach; default: 0;                              FromString: spiralxperiod; default: 0%;
+SpiralY:                float percent, float approach; default: 0;                              FromString: spiraly; default: 0%;
+SpiralYOffset:          float percent, float approach; default: 0;                              FromString: spiralyoffset; default: 0%;
+SpiralYPeriod:          float percent, float approach; default: 0;                              FromString: spiralyperiod; default: 0%;
+SpiralZ:                float percent, float approach; default: 0;                              FromString: spiralzperiod; default: 0%;
+SpiralZOffset:          float percent, float approach; default: 0;                              FromString: spiralzperiod; default: 0%;
+SpiralZPeriod:          float percent, float approach; default: 0;                              FromString: spiralzperiod; default: 0%;
+Split:                  float percent, float approach; default: 0;                              FromString: split; default: 0%;
+Square:                 float percent, float approach; default: 0;                              FromString: square; default: 0%;
+SquareOffset:           float percent, float approach; default: 0;                              FromString: squareoffset; default: 0%;
+SquarePeriod:           float percent, float approach; default: 0;                              FromString: squareperiod; default: 0%;
+SquareZ:                float percent, float approach; default: 0;                              FromString: squarez; default: 0%;
+SquareZOffset:          float percent, float approach; default: 0;                              FromString: squarezoffset; default: 0%;
+SquareZPeriod:          float percent, float approach; default: 0;                              FromString: squarezperiod; default: 0%;
+Stealth:                float percent, float approach; default: 0;                              FromString: stealth; default: 0%;
+StealthCol:             int column, float percent, float approach; default: 0;                  FromString: stealthN; default: 0%;
+StealthColor:           enum ColorType, float percent, float approach; default: 0;              ColorType_Red   FromString: stealthred, stealthr; default: 0%;
+                                                                                                ColorType_Blue  FromString: stealthblue, stealthb; default: 0%;
+                                                                                                ColorType_Green FromString: stealthgreen, stealthg; default: 0%;
+StealthGlowColor:       enum ColorType, float percent, float approach; default: 0;              ColorType_Red   FromString: stealthglowred, stealthgr; default: 0%;
+                                                                                                ColorType_Blue  FromString: stealthglowblue, stealthgb; default: 0%;
+                                                                                                ColorType_Green FromString: stealthglowgreen, stealtgg; default: 0%;
+StealthPastReceptors:   bool enable; default: false;                                            FromString: stealthpastreceptors; <=0% = disable, >0% = enable; default: 0%;
+StealthType:            bool enable; default: false;                                            FromString: stealthtype; <=0% = disable, >0% = enable; default: 0%;
+StraightHolds:          float percent, float approach; default: 0;                              FromString: straightholds, gayholds (% = % * -1); default: 0%;
+StraightHoldsCol:       int column, float percent, float approach; default: 0;                  FromString: straightholdsN, gayholdsN (% = % * -1); default: 0%;
+Sudden:                 float percent, float approach; default: 0;                              FromString: sudden; default: 0%;
+SuddenOffset:           float percent, float approach; default: 0;                              FromString: suddenoffset; default: 0%;
+SuddenColor:            enum ColorType, float percent, float approach; default: 0;              ColorType_Red   FromString: suddenred, suddenr; default: 0%;
+                                                                                                ColorType_Blue  FromString: suddenblue, suddenb; default: 0%;
+                                                                                                ColorType_Green FromString: suddengreen, suddeng; default: 0%;
+SuddenOffsetColor:      enum ColorType, float percent, float approach; default: 0;              ColorType_Red   FromString: suddenredoffset, suddenro; default: 0%;
+                                                                                                ColorType_Blue  FromString: suddenblueoffset, suddenbo; default: 0%;
+                                                                                                ColorType_Green FromString: suddengreenoffset, suddengo; default: 0%;
+TanBumpy:               float percent, float approach; default: 0;                              FromString: tanbumpy, tanbumpyz; default: 0%;
+TanBumpyCol:            int column, float percent, float approach; default: 0;                  FromString: tanbumpyN, tanbumpyzN; default: 0%;
+TanBumpyOffset:         float percent, float approach; default: 0;                              FromString: tanbumpyoffset, tanbumpyzoffset; default: 0%;
+TanBumpyOffsetCol:      int column, float percent, float approach; default: 0;                  FromString: tanbumpyoffsetN, tanbumpyzoffsetN; default: 0%;
+TanBumpyPeriod:         float percent, float approach; default: 0;                              FromString: tanbumpyperiod, tanbumpysize, tanbumpyzperiod, tanbumpyzsize; default: 0%;
+TanBumpyPeriodCol:      int column, float percent, float approach; default: 0;                  FromString: tanbumpyperiodN, tanbumpysizeN, tanbumpyzperiodN, tanbumpyzsizeN; default: 0%;
+TanBumpyX:              float percent, float approach; default: 0;                              FromString: tanbumpyz; default: 0%;
+TanBumpyXCol:           int column, float percent, float approach; default: 0;                  FromString: tanbumpyxN; default: 0%;
+TanBumpyXOffset:        float percent, float approach; default: 0;                              FromString: tanbumpyxoffset; default: 0%;
+TanBumpyXOffsetCol:     int column, float percent, float approach; default: 0;                  FromString: tanbumpyxoffsetN; default: 0%;
+TanBumpyXPeriod:        float percent, float approach; default: 0;                              FromString: tanbumpyxperiod, tanbumpyxsize; default: 0%;
+TanBumpyXPeriodCol:     int column, float percent, float approach; default: 0;                  FromString: tanbumpyxperiodN, tanbumpyxsizeN; default: 0%;
+TanBumpyY:              float percent, float approach; default: 0;                              FromString: tanbumpyy; default: 0%;
+TanBumpyYCol:           int column, float percent, float approach; default: 0;                  FromString: tanbumpyyN; default: 0%;
+TanBumpyYOffset:        float percent, float approach; default: 0;                              FromString: tanbumpyyoffset; default: 0%;
+TanBumpyYOffsetCol:     int column, float percent, float approach; default: 0;                  FromString: tanbumpyyoffsetN; default: 0%;
+TanBumpyYPeriod:        float percent, float approach; default: 0;                              FromString: tanbumpyyperiod, tanbumpyysize; default: 0%;
+TanBumpyYPeriodCol:     int column, float percent, float approach; default: 0;                  FromString: tanbumpyyperiodN, tanbumpyysizeN; default: 0%;
+TanClip:                float percent, float approach: default: 0;                              FromString: tanclip; default: 0%;
+TanDigital:             float percent, float approach; default: 0;                              FromString: tandigital; default: 0%;
+TanDigitalOffset:       float percent, float approach; default: 0;                              FromString: tandigitaloffset; default: 0%;
+TanDigitalPeriod:       float percent, float approach; default: 0;                              FromString: tandigitalperiod; default: 0%;
+TanDigitalSteps:        float percent, float approach; default: 0;                              FromString: tandigitalsteps; default: 0%;
+TanDigitalZ:            float percent, float approach; default: 0;                              FromString: tandigitalz; default: 0%;
+TanDigitalZOffset:      float percent, float approach; default: 0;                              FromString: tandigitalzoffset; default: 0%
+TanDigitalZPeriod:      float percent, float approach; default: 0;                              FromString: tandigitalzperiod; default: 0%
+TanDigitalZSteps:       float percent, float approach; default: 0;                              FromString: tandigitalzsteps; default: 0%;
+TanDrunk:               float percent, float approach; default: 0;                              FromString: tandrunk; default: 0%;
+TanDrunkCol:            int column, float percent, float approach; default: 0;                  FromString: tandrunkN; default: 0%;
+TanDrunkOffset:         float percent, float approach; default: 0;                              FromString: tandrunkoffset; default: 0%;
+TanDrunkOffsetCol:      int column, float percent, float approach; default: 0;                  FromString: tandrunkoffsetN; default: 0%;
+TanDrunkPeriod:         float percent, float approach; default: 0;                              FromString: tandrunkperiod, tandrunksize; default: 0%;
+TanDrunkPeriodCol:      int column, float percent, float approach; default: 0;                  FromString: tandrunkperiodN, tandrunksizeN; default: 0%;
+TanDrunkSpacing:        float percent, float approach; default: 0;                              FromString: tandrunkspacing; default: 0%;
+TanDrunkSpacingCol:     int column, float percent, float approach; default: 0;                  FromString: tandrunkspacingN; default: 0%;
+TanDrunkSpeed:          float percent, float approach; default: 0;                              FromString: tandrunkspeed; default: 0%;
+TanDrunkSpeedCol:       int column, float percent, float approach; default: 0;                  FromString: tandrunkspeedN; default: 0%;
+TanDrunkY:              float percent, float approach; default: 0;                              FromString: tandrunky; default: 0%;
+TanDrunkYCol:           int column, float percent, float approach; default: 0;                  FromString: tandrunkyN; default: 0%;
+TanDrunkYOffset:        float percent, float approach; default: 0;                              FromString: tandrunkyoffset; default: 0%;
+TanDrunkYOffsetCol:     int column, float percent, float approach; default: 0;                  FromString: tandrunkyoffsetN; default: 0%;
+TanDrunkYPeriod:        float percent, float approach; default: 0;                              FromString: tandrunkyperiod, tandrunkysize; default: 0%;
+TanDrunkYPeriodCol:     int column, float percent, float approach; default: 0;                  FromString: tandrunkyperiodN, tandrunkysizeN; default: 0%;
+TanDrunkYSpacing:       float percent, float approach; default: 0;                              FromString: tandrunkyspacing; default: 0%;
+TanDrunkYSpacingCol:    int column, float percent, float approach; default: 0;                  FromString: tandrunkyspacingN; default: 0%;
+TanDrunkYSpeed:         float percent, float approach; default: 0;                              FromString: tandrunkyspeed; default: 0%;
+TanDrunkYSpeedCol:      int column, float percent, float approach; default: 0;                  FromString: tandrunkyspeedN; default: 0%;
+TanDrunkZ:              float percent, float approach; default: 0;                              FromString: tandrunkz; default: 0%;
+TanDrunkZCol:           int column, float percent, float approach; default: 0;                  FromString: tandrunkzN; default: 0%;
+TanDrunkZOffset:        float percent, float approach; default: 0;                              FromString: tandrunkzoffset; default: 0%;
+TanDrunkZOffsetCol:     int column, float percent, float approach; default: 0;                  FromString: tandrunkzoffsetN; default: 0%;
+TanDrunkZPeriod:        float percent, float approach; default: 0;                              FromString: tandrunkzperiod, tandrunkzsize; default: 0%;
+TanDrunkZPeriodCol:     int column, float percent, float approach; default: 0;                  FromString: tandrunkzperiodN, tandrunkzsizeN; default: 0%;
+TanDrunkZSpacing:       float percent, float approach; default: 0;                              FromString: tandrunkzspacing; default: 0%;
+TanDrunkZSpacingCol:    int column, float percent, float approach; default: 0;                  FromString: tandrunkzspacingN; default: 0%;
+TanDrunkZSpeed:         float percent, float approach; default: 0;                              FromString: tandrunkzspeed; default: 0%;
+TanDrunkZSpeedCol:      int column, float percent, float approach; default: 0;                  FromString: tandrunkzspeedN; default: 0%;
+TanExpand:              float percent, float approach; default: 0;                              FromString: tanexpand; default: 0%;
+TanExpandPeriod:        float percent, float approach; default: 0;                              FromString: tanexpandperiod, tanexpandsize; default: 0%;
+// TanPulse is a shorthand to TanPulseInner and TanPulseOuter, passing all values to the two modifiers
+TanPulse:               float percent, float approach; default: 0;                              FromString: tanpulse; default: 0%;
+TanPulseInner:          float percent, float approach; default: 0;                              FromString: tanpulseinner; default: 0%;
+TanPulseOffset:         float percent, float approach; default: 0;                              FromString: tanpulseouter; default: 0%;
+TanPulseOuter:          float percent, float approach; default: 0;                              FromString: tanpulseoffset; default: 0%;
+TanPulsePeriod:         float percent, float approach; default: 0;                              FromString: tanpulseperiod; default: 0%;
+TanTipsy:               float percent, float approach; default: 0;                              FromString: tantipsy; default: 0%;
+TanTipsyCol:            int column, float percent, float approach; default: 0;                  FromString: tantipsyN; default: 0%;
+TanTipsyOffset:         float percent, float approach; default: 0;                              FromString: tantipsyoffset; default: 0%;
+TanTipsyOffsetCol:      int column, float percent, float approach; default: 0;                  FromString: tantipsyoffsetN; default: 0%;
+TanTipsySpacing:        float percent, float approach; default: 0;                              FromString: tantipsyspacing; default: 0%;
+TanTipsySpacingCol:     int column, float percent, float approach; default: 0;                  FromString: tantipsyspacingN; default: 0%;
+TanTipsySpeed:          float percent, float approach; default: 0;                              FromString: tantipsyspeed; default: 0%;
+TanTipsySpeedCol:       int column, float percent, float approach; default: 0;                  FromString: tantipsyspeedN; default: 0%;
+TanTornado:             float percent, float approach; default: 0;                              FromString: tantornado; default: 0%;
+TanTornadoOffset:       float percent, float approach; default: 0;                              FromString: tantornadooffset; default: 0%;
+TanTornadoPeriod:       float percent, float approach; default: 0;                              FromString: tantornadoperiod; default: 0%;
+TanTornadoZ:            float percent, float approach; default: 0;                              FromString: tantornadoz; default: 0%;
+TanTornadoZOffset:      float percent, float approach; default: 0;                              FromString: tantornadozoffset; default: 0%;
+TanTornadoZPeriod:      float percent, float approach; default: 0;                              FromString: tantornadozperiod; default: 0%;
+// TextureFiltering is a shorthand of TextureFilteringCol, passing all values to column 0 to 7, when set to nil or 0%, notes will use the texturefiltering state set by the noteskin
+TextureFiltering:       bool enable or nil; default: nil;                                       FromString: texturefiltering, texturefilteroff (% = % * -1); ==0% = default, >0% = enable, <0% = disable; default: 0%;
+TextureFilteringCol:    int column, bool enable or nil; default: nil;                           FromString: texturefilteringN, texturefilteroffN (% = % * -1); ==0% = default, >0% = enable, <0% = disable; default: 0%;
+Tiny:                   float percent, float approach; default: 0;                              FromString: tiny; default: 0%;
+TinyCol:                int column, float percent, float approach; default: 0;                  FromString: tinyN; default: 0%;
+TinyX:                  float percent, float approach; default: 0;                              FromString: tinyx; default: 0%;
+TinyXCol:               int column, float percent, float approach; default: 0;                  FromString: tinyxN; default: 0%;
+TinyY:                  float percent, float approach; default: 0;                              FromString: tinyy; default: 0%;
+TinyYCol:               int column, float percent, float approach; default: 0;                  FromString: tinyyN; default: 0%;
+TinyZ:                  float percent, float approach; default: 0;                              FromString: tinyz; default: 0%;
+TinyZCol:               int column, float percent, float approach; default: 0;                  FromString: tinyzN; default: 0%;
+Tipsy:                  float percent, float approach; default: 0;                              FromString: tipsy; default: 0%;
+TipsyCol:               int column, float percent, float approach; default: 0;                  FromString: tipsyN; default: 0%;
+TipsyOffset:            float percent, float approach; default: 0;                              FromString: tipsyoffset; default: 0%;
+TipsyOffsetCol:         int column, float percent, float approach; default: 0;                  FromString: tipsyoffsetN; default: 0%;
+TipsySpacing:           float percent, float approach; default: 0;                              FromString: tipsyspacing; default: 0%;
+TipsySpacingCol:        int column, float percent, float approach; default: 0;                  FromString: tipsyspacingN; default: 0%;
+TipsySpeed:             float percent, float approach; default: 0;                              FromString: tinyspeed; default: 0%;
+TipsySpeedCol:          int column, float percent, float approach; default: 0;                  FromString: tinyspeedN; default: 0%;
+Tornado:                float percent, float approach; default: 0;                              FromString: tornado; default: 0%;
+TornadoOffset:          float percent, float approach; default: 0;                              FromString: tornadooffset; default: 0%;
+TornadoPeriod:          float percent, float approach; default: 0;                              FromString: tornadoperiod; default: 0%;
+TornadoZ:               float percent, float approach; default: 0;                              FromString: tornadoz; default: 0%;
+TornadoZOffset:         float percent, float approach; default: 0;                              FromString: tornadozoffset; default: 0%;
+TornadoZPeriod:         float percent, float approach; default: 0;                              FromString: tornadozperiod; default: 0%;
+Twirl:                  float percent, float approach; default: 0;                              FromString: twirl; default: 0%;
+TwirlCol:               int column, float percent, float approach; default: 0;                  FromString: twirlN; default: 0%;
+UnboundedReverse:       bool enable; default: false;                                            FromString: unboundedreverse, reversetype; <=0% = disable, >0% = enable; default: 0%;
+Vanish:                 float percent, float approach; default: 0;                              FromString: vanish; default: 0%;
+VanishOffset:           float percent, float approach; default: 0;                              FromString: vanishoffset; default: 0%;
+VanishSize:             float percent, float approach; default: 0;                              FromString: vanishsize; default: 0%;
+Wave:                   float percent, float approach; default: 0;                              FromString: wave; default: 0%;
+WaveCol:                int column, float percent, float approach; default: 0;                  FromString: waveN; default: 0%;
+WaveOffset:             float percent, float approach; default: 0;                              FromString: waveoffset; default: 0%;
+WaveOffsetCol:          int column, float percent, float approach; default: 0;                  FromString: waveoffsetN; default: 0%;
+WavePeriod:             float percent, float approach; default: 0;                              FromString: waveperiod, wavesize; default: 0%;
+WavePeriodCol:          int column, float percent, float approach; default: 0;                  FromString: waveperiodN, wavesizeN; default: 0%;
+// WireFrame is a shorthand of WireFrameCol, passing all values to column 0 to 7
+WireFrame:              bool enable; default: false;                                            FromString: wireframe; <=0% = disable, >0% = enable; default: 0%;
+WireFrameCol:           int column, bool enable; default: false;                                FromString: wireframeN; <=0% = disable, >0% = enable; default: 0%;
+// WireFrameWidth is a shorthand of WireFrameWidthCol, passing all values to column 0 to 7
+WireFrameWidth:         float percent, float approach; default: 0;                              FromString: wireframewidth, wireframegirth; default: 0%;
+WireFrameWidthCol:      int column, float percent, float approach; default: 0;                  FromString: wireframewidthN, wireframegirthN; default: 0%;
+// When ZBuffer is set to nil or 0%, notes will use ArrowEffects::NeedZBuffer, meaning notes will toggle their zbuffer state on or off depending on the need of specific mods
+ZBuffer:                bool enable or nil; default: nil;                                       FromString: zbuffer, ztest; ==0% = default, >0% = enable, <0% = disable; default: 0%;
+Zigzag:                 float percent, float approach; default: 0;                              FromString: zigzag; default: 0%;
+ZigzagCol:              int column, float percent, float approach; default: 0;                  FromString: zigzagN; default: 0%;
+ZigzagOffset:           float percent, float approach; default: 0;                              FromString: zigzagoffset; default: 0%;
+ZigzagOffsetCol:        int column, float percent, float approach; default: 0;                  FromString: zigzagoffsetN; default: 0%;
+ZigzagPeriod:           float percent, float approach; default: 0;                              FromString: zigzagperiod, zigzagsize; default: 0%;
+ZigzagPeriodCol:        int column, float percent, float approach; default: 0;                  FromString: zigzagperiodN, zigzagsizeN; default: 0%;
+ZigzagZ:                float percent, float approach; default: 0;                              FromString: zigzagz; default: 0%;
+ZigzagZCol:             int column, float percent, float approach; default: 0;                  FromString: zigzagzN; default: 0%;
+ZigzagZOffset:          float percent, float approach; default: 0;                              FromString: zigzagzoffset; default: 0%;
+ZigzagZOffsetCol:       int column, float percent, float approach; default: 0;                  FromString: zigzagzoffsetN; default: 0%;
+ZigzagZPeriod:          float percent, float approach; default: 0;                              FromString: zigzagzperiod, zigzagzsize; default: 0%;
+ZigzagZPeriodCol:       int column, float percent, float approach; default: 0;                  FromString: zigzagzperiodN, zigzagzsizeN; default: 0%;
+
+// "tweens" as mods
+hide:       bool hidden; default false;                 FromString: hide; <=0% = visible, >0% = hidden; default: 0%;
+skewx:      float percent, float approach; default: 0;  FromString: skewx; default: 0%;
+skewy:      float percent, float approach; default: 0;  FromString: skewy; default: 0%;
+rotationx:  float percent, float approach; default: 0;  FromString: rotationx; default: 0%;
+rotationy:  float percent, float approach; default: 0;  FromString: rotationy; default: 0%;
+rotationz:  float percent, float approach; default: 0;  FromString: rotationz; default: 0%;
+x:          float percent, float approach; default: 0;  FromString: x; default: 0%;
+y:          float percent, float approach; default: 0;  FromString: y; default: 0%;
+z:          float percent, float approach; default: 0;  FromString: z; default: 0%;
+zoom:       float percent, float approach; default: 1;  FromString: zoom; default: 100%;
+zoomx:      float percent, float approach; default: 1;  FromString: zoomx; default: 100%;
+zoomy:      float percent, float approach; default: 1;  FromString: zoomy; default: 100%;
+zoomz:      float percent, float approach; default: 1;  FromString: zoomz; default: 100%;
+
+// speedmod, CMod and MMod stack over XMod: ie XMod(2) + CMod(200) == CMod(200 * 2), calling XMod sets CMod and MMod to nil, calling CMod sets MMod to nil, calling MMod sets CMod to nil
+XMod:   float speedmod, float approach; default: 1;     FromString: <speedmod>x, xmod; default: 1x;
+CMod:   float speedmod, float approach; default: nil;   FromString: c<speedmod>, cmod; default: ;
+MMod:   float speedmod, float approach; default: nil;   FromString: m<speedmod>, mmod; default: ;
+
+// these specific modifiers cannot be turned on mid file as they modify the chart, so must be queued in some way, usually via GAMESTATE:LaunchAttack
+Big:                bool enable; default: false;    FromString: big; <=50% = disable, >50% = enable; default: 0%;
+BMRIze:             bool enable; default: false;    FromString: bmrize; <=50% = disable, >50% = enable; default: 0%;
+CouplesMirror:      bool enable; default: false;    FromString: couplesmirror; <=50% = disable, >50% = enable; default: 0%;
+CouplesSwapNotes:   bool enable; default: false;    FromString: couplesswapnotes; <=50% = disable, >50% = enable; default: 0%;
+CouplesSwapSides:   bool enable; default: false;    FromString: couplesswapsides, swapsides; <=50% = disable, >50% = enable; default: 0%;
+Echo:               bool enable; default: false;    FromString: echo; <=50% = disable, >50% = enable; default: 0%;
+Floored:            bool enable; default: false;    FromString: floored; <=50% = disable, >50% = enable; default: 0%;
+HoldsToRolls:       bool enable; default: false;    FromString: holdstorolls; <=50% = disable, >50% = enable; default: 0%;
+Left:               bool enable; default: false;    FromString: left; <=50% = disable, >50% = enable; default: 0%;
+Little:             bool enable; default: false;    FromString: little; <=50% = disable, >50% = enable; default: 0%;
+Mines:              bool enable; default: false;    FromString: mines; <=50% = disable, >50% = enable; default: 0%;
+Mirror:             bool enable; default: false;    FromString: mirror; <=50% = disable, >50% = enable; default: 0%;
+NoHands:            bool enable; default: false;    FromString: nohands; <=50% = disable, >50% = enable; default: 0%;
+NoHolds:            bool enable; default: false;    FromString: noholds, nofreeze; <=50% = disable, >50% = enable; default: 0%;
+NoJumps:            bool enable; default: false;    FromString: nojumps; <=50% = disable, >50% = enable; default: 0%;
+NoMines:            bool enable; default: false;    FromString: nomines; <=50% = disable, >50% = enable; default: 0%;
+NoQuads:            bool enable; default: false;    FromString: noquads; <=50% = disable, >50% = enable; default: 0%;
+NoRolls:            bool enable; default: false;    FromString: norolls; <=50% = disable, >50% = enable; default: 0%;
+NoStretch:          bool enable; default: false;    FromString: nostretch; <=50% = disable, >50% = enable; default: 0%;
+Planted:            bool enable; default: false;    FromString: planted; <=50% = disable, >50% = enable; default: 0%;
+Quick:              bool enable; default: false;    FromString: quick; <=50% = disable, >50% = enable; default: 0%;
+Right:              bool enable; default: false;    FromString: right; <=50% = disable, >50% = enable; default: 0%;
+Shuffle:            bool enable; default: false;    FromString: shuffle; <=50% = disable, >50% = enable; default: 0%;
+Skippy:             bool enable; default: false;    FromString: skippy; <=50% = disable, >50% = enable; default: 0%;
+SmartBlender:       bool enable; default: false;    FromString: smartblender; <=50% = disable, >50% = enable; default: 0%;
+SoftShuffle:        bool enable; default: false;    FromString: softshuffle; <=50% = disable, >50% = enable; default: 0%;
+SpookyShuffle:      bool enable; default: false;    FromString: spookyshuffle; <=50% = disable, >50% = enable; default: 0%;
+Stomp:              bool enable; default: false;    FromString: stomp; <=50% = disable, >50% = enable; default: 0%;
+SuperShuffle:       bool enable; default: false;    FromString: supershuffle; <=50% = disable, >50% = enable; default: 0%;
+SwapLeftRight:      bool enable; default: false;    FromString: swapleftright; <=50% = disable, >50% = enable; default: 0%;
+SwapUpDown:         bool enable; default: false;    FromString: swapupdown; <=50% = disable, >50% = enable; default: 0%;
+Twister:            bool enable; default: false;    FromString: twister; <=50% = disable, >50% = enable; default: 0%;
+Wide:               bool enable; default: false;    FromString: wide; <=50% = disable, >50% = enable; default: 0%;
+
+// resets all mods to default values when invoked
+ClearAll:   void; default: nil; FromString: clearall; default: ;
+
+// picks a random modifier with the following weights any time the modifier is called:
+//      20% chance of setting XMod to 1.5
+//      20% chance of setting Reverse to 100%
+//      10% chance of setting Dark to 100%
+//      33% chance of applying any non column specific mod that are not stealth related
+//      05% chance of applying hidden or sudden
+Random:     void; default: nil; FromString: random; default: ;
+
+// FromString function that takes the FromString versions of mods, calling GAMESTATE:ApplyModifiers invokes FromString
+FromString: string modifiers;
