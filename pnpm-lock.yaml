@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@fontsource/ibm-plex-mono':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource/ibm-plex-sans':
         specifier: ^5.3.0
         version: 5.3.0
@@ -20,6 +23,12 @@ importers:
       modern-normalize:
         specifier: ^3.0.1
         version: 3.0.1
+      pretty-num:
+        specifier: ^0.6.2
+        version: 0.6.2
+      svelte-feather-icons:
+        specifier: ^4.2.0
+        version: 4.2.0
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^3.0.6
@@ -203,6 +212,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource/ibm-plex-mono@5.3.0':
+    resolution: {integrity: sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q==}
 
   '@fontsource/ibm-plex-sans@5.3.0':
     resolution: {integrity: sha512-CbE4CbbEEZJX860XyUiRpsksXIQR8Rp2XDva2VO53NJox9tVNtusrysd2x5YkUEY3ErQ66W1IiiQL8/wihhw5w==}
@@ -576,6 +588,9 @@ packages:
       picomatch:
         optional: true
 
+  from-exponential@1.1.1:
+    resolution: {integrity: sha512-VBE7f5OVnYwdgB3LHa+Qo29h8qVpxhVO9Trlc+AWm+/XNAgks1tAwMFHb33mjeiof77GglsJzeYF7OqXrROP/A==}
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -625,6 +640,9 @@ packages:
     resolution: {integrity: sha512-u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ==}
     engines: {node: ^10 || ^12 || >=14}
 
+  pretty-num@0.6.2:
+    resolution: {integrity: sha512-6DDkpdIcLbpm5965BRz3LsGW0MCdKh8HFcXQvoGxOwNdB7WB3Vvon4uuPE2ACJuj8tCO5yxIA2woLuowni9eZQ==}
+
   readdirp@4.1.2:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
     engines: {node: '>= 14.18.0'}
@@ -657,9 +675,19 @@ packages:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: ^5.0.0 || ^6.0.0
 
+  svelte-feather-icons@4.2.0:
+    resolution: {integrity: sha512-KuMTDrL6sA8aCxBv3RMgmmnnyIaAXaYcmWkmNa2r2Qj70vi+An2T6ZBAdiZr6wjx+a3eZJy+FRseeRkzQFGHPw==}
+
+  svelte@3.59.2:
+    resolution: {integrity: sha512-vzSyuGr3eEoAtT/A6bmajosJZIUWySzY2CzB3w2pgPvnkUjGqlDnsNnA0PMO+mMAhuyMul6C2uuZzY6ELSkzyA==}
+    engines: {node: '>= 8'}
+
   svelte@5.56.10:
     resolution: {integrity: sha512-Lcxbj8I/KAbpY+VjtY4ENQBV0dDCipfGAhqb51XQZ67CIQqXgsv/8dPkbILaj4Fb6/b6JAEM/PIVbILXgDQy2g==}
     engines: {node: '>=18'}
+
+  thousands@1.0.1:
+    resolution: {integrity: sha512-Di+gdTXx6Xm6ST/XJqqp1Y7N+SnA1WAfrjABCnVvFi3ao6cqkV/wMfxQXJaxJ0qw/L05GVjPP6DKigdkCwnGNg==}
 
   tinyglobby@0.2.17:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
@@ -804,6 +832,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.12':
     optional: true
+
+  '@fontsource/ibm-plex-mono@5.3.0': {}
 
   '@fontsource/ibm-plex-sans@5.3.0': {}
 
@@ -1080,6 +1110,8 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.5
 
+  from-exponential@1.1.1: {}
+
   fsevents@2.3.3:
     optional: true
 
@@ -1114,6 +1146,11 @@ snapshots:
       nanoid: 3.3.18
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  pretty-num@0.6.2:
+    dependencies:
+      from-exponential: 1.1.1
+      thousands: 1.0.1
 
   readdirp@4.1.2: {}
 
@@ -1176,6 +1213,12 @@ snapshots:
     transitivePeerDependencies:
       - picomatch
 
+  svelte-feather-icons@4.2.0:
+    dependencies:
+      svelte: 3.59.2
+
+  svelte@3.59.2: {}
+
   svelte@5.56.10:
     dependencies:
       '@jridgewell/remapping': 2.3.5
@@ -1196,6 +1239,8 @@ snapshots:
       zimmerframe: 1.1.4
     transitivePeerDependencies:
       - '@typescript-eslint/types'
+
+  thousands@1.0.1: {}
 
   tinyglobby@0.2.17:
     dependencies:
