@@ -26,17 +26,17 @@
     });
   }
   function fieldOnChange(methodName: string) {
-    return (a: number) => callMethod(methodName, a);
+    return (a: number | undefined) => callMethod(methodName, a);
   }
 
   function toRGBA(r: number, g: number, b: number, a: number): string {
-    console.log(`rgba(${[r, g, b].map(n => Math.floor(n * 255)).join(',')},${a})`);
+    //console.log(`rgba(${[r, g, b].map(n => Math.floor(n * 255)).join(',')},${a})`);
     return `rgba(${[r, g, b].map(n => Math.floor(n * 255)).join(',')},${a})`;
   }
   function fromRGBA(str: string): [ number, number, number, number ] {
-    console.log(str);
+    //console.log(str);
     const [ r, g, b, a ] = str.slice(4, -1).split(',').map(n => parseInt(n.trim()));
-    console.log(r, g, b, a);
+    //console.log(r, g, b, a);
     return [ r/255, g/255, b/255, a ];
   }
 
@@ -76,6 +76,14 @@
     getter: Getter
     setter: Setter,
     setterAsNumber?: boolean,
+    default?: boolean,
+  }
+  interface FloatAttr {
+    type: 'float',
+    getter: Getter,
+    setter: Setter,
+    step?: number,
+    default?: number,
   }
   // eg. skewx, skewy
   interface Float2Attr {
@@ -83,6 +91,7 @@
     getters: [Getter, Getter],
     setters: [Setter, Setter],
     step?: number,
+    default?: number,
   }
   // eg. xyz
   interface Float3Attr {
@@ -91,6 +100,7 @@
     setters: [Setter, Setter, Setter],
     xyDragSetters?: [Setter, Setter],
     step?: number,
+    default?: number,
   }
   // eg. diffuse
   interface ColorAttr {
@@ -104,18 +114,14 @@
     values: string[],
     getter: Getter,
     setter: Setter,
+    default?: string,
   }
   // eg. settext
   interface TextAttr {
     type: 'text',
     getter: Getter,
     setter: Setter,
-  }
-  interface FloatAttr {
-    type: 'float',
-    getter: Getter,
-    setter: Setter,
-    step?: number,
+    default?: string,
   }
 
   interface ModAttrPercent {
@@ -182,6 +188,7 @@
           values: [ 'xyz', 'zyx', 'yzx' ],
           getter: 'ro',
           setter: 'SetRotationOrder',
+          default: 'zyx',
         }
       },
       {
@@ -192,6 +199,7 @@
           getters: [ 'zx', 'zy', 'zz' ],
           setters: [ 'zoomx', 'zoomy', 'zoomz' ],
           step: 0.01,
+          default: 1,
         }
       },
       {
@@ -202,6 +210,7 @@
           getters: [ 'bzx', 'bzy', 'bzz' ],
           setters: [ 'basezoomx', 'basezoomy', 'basezoomz' ],
           step: 0.01,
+          default: 1,
         }
       },
       {
@@ -335,7 +344,6 @@
   let pathContainer: HTMLDivElement;
 
   onMount(() => {
-    console.log(pathContainer.scrollWidth, pathContainer.clientWidth);
     if (pathContainer.scrollWidth > pathContainer.clientWidth) {
       pathOverflowing = true;
     }
@@ -638,33 +646,39 @@
           bind:value={actor[attrs.getter] as number}
           onchange={fieldOnChange(attrs.setter)}
           step={attrs.step}
+          defaultValue={attrs.default}
         ></NumberField>
         {:else if type === 'float2'}
         <NumberField
           bind:value={actor[attrs.getters[0]] as number}
           onchange={fieldOnChange(attrs.setters[0])}
           step={attrs.step}
+          defaultValue={attrs.default}
         ><span class="axis x">X</span></NumberField>
         <NumberField
           bind:value={actor[attrs.getters[1]] as number}
           onchange={fieldOnChange(attrs.setters[1])}
           step={attrs.step}
+          defaultValue={attrs.default}
         ><span class="axis y">Y</span></NumberField>
         {:else if type === 'float3'}
         <NumberField
           bind:value={actor[attrs.getters[0]] as number}
           onchange={fieldOnChange(attrs.setters[0])}
           step={attrs.step}
+          defaultValue={attrs.default}
         ><span class="axis x">X</span></NumberField>
         <NumberField
           bind:value={actor[attrs.getters[1]] as number}
           onchange={fieldOnChange(attrs.setters[1])}
           step={attrs.step}
+          defaultValue={attrs.default}
         ><span class="axis y">Y</span></NumberField>
         <NumberField
           bind:value={actor[attrs.getters[2]] as number}
           onchange={fieldOnChange(attrs.setters[2])}
           step={attrs.step}
+          defaultValue={attrs.default}
         ><span class="axis z">Z</span></NumberField>
         {:else if type === 'color'}
         <!-- TODO: replace with handmade color picker -->
@@ -689,6 +703,8 @@
             bind:value={actor[`m_${attrs.name}`] as number}
             onchange={(a) => setMod(attrs.name, a, -1)}
             step={0.1}
+            allowNull={attrs.nillable}
+            defaultValue={attrs.default}
           ></NumberField>
           {:else if attrs.modType === 'bool'}
           <input type="checkbox"
@@ -698,10 +714,13 @@
           {:else if attrs.modType === 'enum'}
           <select
             bind:value={actor[`m_${attrs.name}`] as string}
-            onchange={(ev) => setMod(attrs.name, (ev.target as HTMLSelectElement).value)}
+            onchange={(ev) => setMod(attrs.name, (ev.target as HTMLSelectElement).value || null)}
           >
+            {#if attrs.nillable}
+            <option value=''>nil</option>
+            {/if}
             {#each attrs.values as value}
-            <option {value}>{value.split('_')[1]}</option>
+            <option {value}>{value.split('_').slice(1).join('_')}</option>
             {/each}
           </select>
           {/if}

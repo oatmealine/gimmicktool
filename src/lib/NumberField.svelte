@@ -9,12 +9,19 @@
     value = $bindable(),
     onchange,
     step = 1,
+    allowNull = false,
+    defaultValue = 0,
   }: {
     children?: Snippet,
     value: number,
-    onchange: (a: number) => void,
     step?: number,
+    onchange: (a: number | undefined) => void,
+    allowNull?: boolean,
+    defaultValue?: number,
   } = $props();
+
+  // svelte-ignore state_referenced_locally
+  let lastValidValue: number | undefined = defaultValue;
 
   let editing = $state(false);
   let dragging = $state(false);
@@ -22,6 +29,7 @@
   const DRAG_THRES = 2;
 
   let knob: HTMLDivElement;
+  // svelte-ignore non_reactive_update
   let input: HTMLInputElement;
 
   let mx = 0;
@@ -33,6 +41,8 @@
       dragging = true;
     }
     if (dragging) {
+      if (value === undefined || isNaN(value)) value = 0;
+
       let base = step;
       let mult = 1;
       if (key.alt) base = 0.25;
@@ -69,6 +79,25 @@
       dragging = false;
     }
   }
+
+  function onChange(input: HTMLInputElement) {
+    const newValue = input.valueAsNumber;
+    if (input.value.trim().length === 0 || isNaN(newValue)) {
+      if (allowNull) {
+        // @ts-ignore you do not understand my intents
+        onchange(undefined);
+        // @ts-ignore you still do not understand my intents
+        value = undefined;
+        lastValidValue = undefined;
+      } else {
+        value = defaultValue;
+      }
+    } else {
+      value = newValue;
+      lastValidValue = value;
+      onchange(newValue);
+    }
+  }
 </script>
 
 <style>
@@ -101,6 +130,10 @@
       overflow: hidden;
       white-space: nowrap;
       text-overflow: clip;
+      & .nil {
+        color: var(--text-light);
+        font-style: italic;
+      }
     }
 
     input {
@@ -132,11 +165,12 @@
       type="number"
       bind:value={value}
       bind:this={input}
-      onchange={(ev) => onchange((ev.target as HTMLInputElement).valueAsNumber)}
+      placeholder="{allowNull ? 'nil' : defaultValue.toString()}"
+      onchange={(ev) => onChange(ev.target as HTMLInputElement)}
       onfocusout={() => editing = false}
       onkeydown={(ev) => {
         if (ev.code === 'Enter') {
-          onchange((ev.target as HTMLInputElement).valueAsNumber);
+          onChange(ev.target as HTMLInputElement);
           editing = false;
         }
       }}
@@ -149,7 +183,11 @@
       await knob.requestPointerLock();
       knob.addEventListener('mousemove', updatePosition);
     }}>
+      {#if value !== undefined}
       {prettyNum(value, {precision: 3})}
+      {:else}
+      <span class="nil">nil</span>
+      {/if}
     </div>
   {/if}
 </div>

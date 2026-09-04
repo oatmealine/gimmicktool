@@ -91,3 +91,8 @@ select {
 }
 
 summary:focus { outline: none; }
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-light);
+  font-style: italic;
+}
