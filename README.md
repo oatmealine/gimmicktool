@@ -39,7 +39,6 @@ used for development purposes.
    repository.
 1. Run `pnpm install` to install pnpm dependencies
    
-   > [!NOTE]
    > If you're like me, and store git repositories in a directory named
    > `projects`, pnpm will mistake this for a monorepo projects directory and
    > start scanning every single entry in it. Pass `--ignore-workspace` for it
@@ -49,7 +48,6 @@ used for development purposes.
      - Run `RUST_LOG=trace pnpm tauri dev`. This will rebuild the Rust side if it
      gets changed, and refresh the webview when the web code gets changed.
 
-        > [!NOTE]
         > On macOS, a [cargo config](./src-tauri/.cargo/config.toml) runs a
         > script before `cargo run` to sign the binary, as unsigned binaries
         > without `com.apple.security.cs.debugger` are not allowed to read/write
@@ -63,7 +61,6 @@ used for development purposes.
        - On macOS, run `pnpm tauri build --bundles app`. This will produce an
          .app in `src-tauri/target/release/bundle/gimmicktool.app`.
 
-         > [!NOTE]
          > macOS bundles will also be signed (with only ad-hoc signing for now
          > as I do not have 100$/yr to give to Apple). **This step cannot be
          > skipped**, as otherwise macOS will not give gimmicktool permission to
