@@ -5,5 +5,8 @@
   "svelte.enable-ts-plugin": true,
   "cSpell.words": [
     "gimmicktool"
-  ]
+  ],
+  "nixEnvSelector.nixFile": "${workspaceFolder}/flake.nix",
+  "nixEnvSelector.useFlakes": true,
+  "nixEnvSelector.flakeShell": "default"
 }
