@@ -57,21 +57,71 @@ should be considered dropped.
 
 ## Messages
 
-A message is a string of characters, specifically UTF-8 JSON data written in
-indices 1 to the end of the external memory space. Data is packed such that each
-i32 external memory "slot" holds 4 u8 characters. `0x00` is used as a stream end
-marker, while `0x01` is used as a message end marker.
-
-For example, when sending 3 messages, each one should have a `0x01` marker after
-itself, except for the last, which has a `0x00` marker to terminate the stream.
-
-Data after a `0x00` marker should be entirely disregarded.
+A message is a string of characters, specifically data serialized as specified
+in [Serialization](#serialization) written in indices 1 to the end of the
+external memory space. Data is packed such that each i32 external memory "slot"
+holds 4 u8 bytes. Each message is prepended with its length as a u32.
 
 Messages and message streams should be split into multiple writes to the memory
 space if they cannot fit within it. Therefore, when reading a message, if it
-reaches the end of the memory space without a `0x00`, you should consider this
-message unfinished, emit an ACK, and wait for the other party to complete it in
-a later write.
+reaches the end of the memory space but is shorter than its specified length,
+you should consider this message unfinished, emit an ACK, and wait for the other
+party to complete it in a later write.
+
+### Serialization
+
+Sometsuki messages are serialized in a binary format optimized for
+encoding/decoding speed. They are modeled closest to Lua's value types.
+
+Message data is composed of values. While any value could theoretically be a
+valid message, clients and hosts should only accept tables at the root as valid.
+
+Big-endian should be assumed whenever not specifed.
+
+The following are the possible values:
+
+- `nil`/Null values
+  - Represented by a single `0x00` byte
+- 8-bit integers
+  - Represented by a `0x01` byte, followed by a big-endian signed 8-bit integer.
+  - Integers outside of the 8-bit signed integer range should insteda be
+    represented as 16-bit integers.
+- 16-bit integers
+  - Represented by a `0x02` byte, followed by a big-endian signed 16-bit
+    integer.
+  - Integers outside of the 16-bit signed integer range should instead be
+    represented as 32-bit integers.
+- 32-bit integers
+  - Represented by a `0x03` byte, followed by a big-endian signed 32-bit
+    integer.
+  - Integers outside of the 32-bit signed integer range should instead be
+    represented as floating-point numbers.
+- Floating point numbers
+  - Represented by a `0x04` byte, followed by a big-endian IEEE 754 double
+    (64-bit).
+- Booleans
+  - Represented by a single `0x05` byte for `true`, and a single `0x06` byte
+    for `false`.
+- Characters
+  - Represented by a `0x07`, followed by the character as a big-endian unsigned
+    8-bit integer.
+  - Mostly exists as a simple space optimization given most keys in Sometsuki
+    messages are single-character.
+- Strings
+  - Represented by a `0x08` byte, followed by the size of the string as a u32,
+    then the bytes of the string.
+  - Strings do not need to be guaranteed to be valid UTF-8 data.
+- Integer-key tables
+  - These are tables of sequential indices starting from 0 (or 1 in Lua).
+    Non-sequential, non-integer or tables starting from a different index should
+    instead be represented by an arbitrary key table.
+  - Represented by a `0x09` byte, followed by the length of the table as a u32,
+    then the values.
+- Arbitrary key tables
+  - These are tables where any value could be the index.
+  - Represented by a `0x0a` byte, followed by the length of the table as a u32,
+    then the keys and values. Keys and values should be intervowen, eg. `k, v,
+    k, v, ...`.
 
 ### Format
 
