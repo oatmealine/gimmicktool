@@ -2,6 +2,7 @@
   import { onDestroy, onMount } from 'svelte';
   import { connection, sendMessage } from './sometsuki.svelte';
   import { history } from './history.svelte';
+  import { consolePushHistory } from './config';
 
   let outputs = $state.raw([]) as { type: 'input' | 'output' | 'error' | 'log', res: string }[];
   let outputsDirty = false;
@@ -37,16 +38,16 @@
     render();
   });
 
-  function submit(ev: SubmitEvent) {
+  async function submit(ev: SubmitEvent) {
     ev.preventDefault();
 
     const cmd = input.value.trim();
 
-    history.push(cmd);
+    if (cmd.length === 0) return;
+
+    await consolePushHistory(cmd);
     historyIndex = -1;
     pushToOutputs({ type: 'input', res: cmd });
-
-    if (cmd.length === 0) return;
     sendMessage({ t: 'eval', c: input.value });
     input.value = '';
   }

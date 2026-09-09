@@ -18,6 +18,7 @@ pub fn run() {
   pretty_env_logger::init();
 
   tauri::Builder::default()
+    .plugin(tauri_plugin_store::Builder::new().build())
     .setup(|app| {
       let (tx, rx) = std::sync::mpsc::channel::<SometsukiCommand>();
 

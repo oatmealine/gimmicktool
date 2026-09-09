@@ -28,12 +28,12 @@
           inherit (package) version;
           src = ./.;
           
-          cargoHash = "sha256-hPWGRebt5Y/Wo+dJWmtSonYSRBvLu05LAx+1C0UOQcI=";
+          cargoHash = "sha256-rmO2bJdkzamhyju7XMPw0Q+WFrsJCiq0EqNZbWoRymw=";
 
           pnpmDeps = (pkgs.fetchPnpmDeps {
             inherit (final) pname version src;
             inherit pnpm;
-            hash = "sha256-BpYo19OBRY/ZWV2xmG5KFhiFr/46r7gB2RS55IXxsfo=";
+            hash = "sha256-HvLwbS63mzhfmsVaD4H5Qkw7x6XMgE0s7CDGi+syKA4=";
             fetcherVersion = 3;
           });
 
