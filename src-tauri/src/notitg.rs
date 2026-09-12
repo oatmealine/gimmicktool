@@ -14,8 +14,8 @@ pub enum NotITGError {
   #[error("I/O error: {0}")]
   Io(#[from] std::io::Error),
 
-  #[error("JSON de/serialization error: {0}")]
-  Json(#[from] serde_json::Error),
+  #[error("message de/serialization error: {0}")]
+  MessageSerialization(#[from] crate::message::Error),
 
   #[error("UTF8 decoding error: {0}")]
   Utf8(#[from] std::str::Utf8Error),

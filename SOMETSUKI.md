@@ -60,7 +60,9 @@ should be considered dropped.
 A message is a string of characters, specifically data serialized as specified
 in [Serialization](#serialization) written in indices 1 to the end of the
 external memory space. Data is packed such that each i32 external memory "slot"
-holds 4 u8 bytes. Each message is prepended with its length as a u32.
+holds 4 u8 bytes. Each message is prepended with its length as a u32. The
+message stream ends if the length of the message is `0x00000000`, and the rest
+of the data should be considered junk.
 
 Messages and message streams should be split into multiple writes to the memory
 space if they cannot fit within it. Therefore, when reading a message, if it
@@ -82,23 +84,18 @@ The following are the possible values:
 
 - `nil`/Null values
   - Represented by a single `0x00` byte
-- 8-bit integers
-  - Represented by a `0x01` byte, followed by a big-endian signed 8-bit integer.
-  - Integers outside of the 8-bit signed integer range should insteda be
-    represented as 16-bit integers.
-- 16-bit integers
-  - Represented by a `0x02` byte, followed by a big-endian signed 16-bit
-    integer.
-  - Integers outside of the 16-bit signed integer range should instead be
-    represented as 32-bit integers.
-- 32-bit integers
-  - Represented by a `0x03` byte, followed by a big-endian signed 32-bit
-    integer.
+- Integers
+  - Represented differently depending on the size:
+    - `0x01`, followed by a big-endian signed 8-bit integer,
+    - `0x02`, followed by a big-endian signed 16-bit integer,
+    - `0x03`, followed by a big-endian signed 32-bit integer.
   - Integers outside of the 32-bit signed integer range should instead be
-    represented as floating-point numbers.
+    represented as floating point numbers.
 - Floating point numbers
   - Represented by a `0x04` byte, followed by a big-endian IEEE 754 double
     (64-bit).
+  - This is the biggest number Lua 5.0 can represent, so anything requiring a
+    higher precision should be rejected.
 - Booleans
   - Represented by a single `0x05` byte for `true`, and a single `0x06` byte
     for `false`.
@@ -108,20 +105,36 @@ The following are the possible values:
   - Mostly exists as a simple space optimization given most keys in Sometsuki
     messages are single-character.
 - Strings
-  - Represented by a `0x08` byte, followed by the size of the string as a u32,
+  - Represented by a `0x08` byte, followed by the size of the string as a u8,
     then the bytes of the string.
+  - For higher string sizes, the following representations should be used
+    instead:
+    - `0x09`, followed by the size as a u16, then the string
+    - `0x0a`, followed by the size as a u32, then the string
+    - Higher sizes should be rejected.
   - Strings do not need to be guaranteed to be valid UTF-8 data.
 - Integer-key tables
   - These are tables of sequential indices starting from 0 (or 1 in Lua).
     Non-sequential, non-integer or tables starting from a different index should
     instead be represented by an arbitrary key table.
-  - Represented by a `0x09` byte, followed by the length of the table as a u32,
+  - Represented by a `0x0b` byte, followed by the length of the table as a u8,
     then the values.
+  - For higher table sizes, the following representations should be used
+    instead:
+    - `0x0c`, followed by the size as a u16, then the values
+    - `0x0d`, followed by the size as a u32, then the values
+    - Higher sizes should be rejected.
 - Arbitrary key tables
   - These are tables where any value could be the index.
-  - Represented by a `0x0a` byte, followed by the length of the table as a u32,
+    - `nil` indices should be rejected, as they are invalid in Lua.
+  - Represented by a `0x0e` byte, followed by the length of the table as a u8,
     then the keys and values. Keys and values should be intervowen, eg. `k, v,
     k, v, ...`.
+  - For higher table sizes, the following representations should be used
+    instead:
+    - `0x0f`, followed by the size as a u16, then the values
+    - `0x10`, followed by the size as a u32, then the values
+    - Higher sizes should be rejected.
 
 ### Format
 

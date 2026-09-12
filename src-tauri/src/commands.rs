@@ -6,14 +6,12 @@ use process_memory::{Pid};
 use serde_json::Value;
 use tauri::ipc::Channel;
 use tauri::State;
-use crate::state::{AppState};
+use crate::state::AppState;
+use crate::message::Message;
 
 fn report_if_errored<T>(res: Result<T, NotITGError>) -> Result<T, NotITGError> {
-  match res {
-  	Err(ref e) => {
-      error!("{e}");
-  	},
-  	Ok(_) => (),
+  if let Err(ref e) = res {
+    error!("{e}");
   };
   res
 }
@@ -35,9 +33,10 @@ pub fn connect(state: State<'_, AppState>, pid: Pid, base_address: usize, size: 
 
 #[tauri::command]
 pub fn send_message(state: State<'_, AppState>, value: Value) -> Result<(), NotITGError> {
+  let msg = Message::from_json(&value)?;
   let (reply_tx, reply_rx) = oneshot::channel();
   state.sometsuki_tx.send(SometsukiCommand::SendMessage {
-    reply: reply_tx, value
+    reply: reply_tx, value: msg
   })?;
   report_if_errored(reply_rx.recv()?)
 }

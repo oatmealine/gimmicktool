@@ -2,5 +2,7 @@
   "rust-analyzer.linkedProjects": [
     "src-tauri/Cargo.toml"
   ],
-  "svelte.enable-ts-plugin": true
+  "svelte.enable-ts-plugin": true,
+  "nixEnvSelector.nixFile": "${workspaceFolder}/shell.nix",
+  "nixEnvSelector.useFlakes": false
 }

@@ -2,6 +2,7 @@ mod commands;
 mod notitg;
 mod sometsuki;
 mod state;
+mod message;
 
 use std::sync::mpsc::TryRecvError;
 use std::thread;

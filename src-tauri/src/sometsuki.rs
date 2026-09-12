@@ -3,10 +3,11 @@ use std::time::{Duration, Instant};
 use log::{debug, error, info, trace, warn};
 use process_memory::{Pid, ProcessHandle, TryIntoProcessHandle};
 use serde::Serialize;
-use serde_json::{Value, json};
+use serde_json::json;
 use tauri::ipc::Channel;
 
 use crate::notitg::{NotITGError, Slot, read_addr, read_addr_vec, write_addr};
+use crate::message::{self, Message};
 
 // headers
 const H2C_ACK: Slot = 0x01;
@@ -16,10 +17,6 @@ const C2H_ACK: Slot = 0x04;
 const C2H_WRITING: Slot = 0x05;
 const C2H_READY: Slot = 0x06;
 
-// special bytes
-const STREAM_END: u8 = 0x00;
-const STREAM_SEP: u8 = 0x01;
-
 struct SometsukiConnection {
   handle: ProcessHandle,
   base_address: usize,
@@ -27,13 +24,14 @@ struct SometsukiConnection {
   
   write_buf: Vec<u8>,
   read_buf: Vec<u8>,
+  read_bytes: u32,
 }
 
 #[derive(Clone, Serialize, Debug)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "event", content = "data")]
 pub enum ConnectionEvent {
   Connected { name: String, version: String },
-  Message { value: Value },
+  Message { value: Message },
   Error { message: String },
   Disconnected,
 }
@@ -48,7 +46,7 @@ pub enum SometsukiCommand {
   SendMessage {
     reply: oneshot::Sender<Result<(), NotITGError>>,
 
-    value: Value,
+    value: Message,
   },
   Disconnect,
 }
@@ -81,31 +79,48 @@ impl SometsukiConnection {
   pub fn read(&mut self) -> std::io::Result<Vec<Vec<u8>>> {
     let mut msgs: Vec<Vec<u8>> = Vec::new();
 
-    let buffer: Vec<u8> = read_addr_vec(
+    let mut buffer: Vec<u8> = read_addr_vec(
       self.handle,
       self.base_address + size_of::<Slot>(),
       (self.size - 1) * (size_of::<Slot>() / size_of::<u8>())
     )?;
 
-    for v in buffer {
-      match v {
-        STREAM_SEP => msgs.push(self.flush_read_buffer()),
-        STREAM_END => {
-          msgs.push(self.flush_read_buffer());
+    loop {
+      if self.read_bytes > 0 {
+        if self.read_bytes >= buffer.len() as u32 {
+          self.read_bytes -= buffer.len() as u32;
+          self.read_buf.extend(buffer.drain(0..)); // TODO: is this needed?
           break;
-        },
-        _ => self.read_buf.push(v),
-      };
+        } else {
+          self.read_buf.extend(buffer.drain(0..self.read_bytes as usize));
+          msgs.push(self.flush_read_buffer());
+        }
+      }
+
+      if buffer.len() < 4 {
+        return Err(std::io::Error::other("unexpected end of buffer"));
+      }
+
+      let size = u32::from_be_bytes(
+        // unwraps [u8] to [u8; 4]
+        buffer.drain(0..4).as_slice().try_into().unwrap()
+      );
+      self.read_bytes = size;
+
+      if size == 0 {
+        break;
+      }
     }
-    
+
     Ok(msgs)
   }
 
   pub fn write(&mut self, should_write_ack: bool) -> std::io::Result<()> {
     if !self.write_buf.is_empty() {
       self.write_header(&C2H_WRITING)?;
+      let max_idx = (self.size - 1) * (size_of::<Slot>() / size_of::<u8>());
       let end_idx = usize::min(
-        (self.size - 1) * (size_of::<Slot>() / size_of::<u8>()),
+        max_idx,
         self.write_buf.len()
       );
       for (i, value) in self.write_buf.drain(0..end_idx).enumerate() {
@@ -130,24 +145,23 @@ impl SometsukiConnection {
   
   fn send_message(&mut self, msg: Vec<u8>) {
     if !self.write_buf.is_empty() {
-      // replace the end STREAM_END with STREAM_SEP
-      self.write_buf.pop();
-      self.write_buf.push(STREAM_SEP);
+      // remove trailing 0x00000000
+      self.write_buf.truncate(self.write_buf.len() - 4);
     }
+    self.write_buf.extend((msg.len() as u32).to_be_bytes());
     self.write_buf.extend(msg);
-    self.write_buf.push(STREAM_END);
+    self.write_buf.extend([0x00, 0x00, 0x00, 0x00]);
   }
 }
 
-fn msg_encode(val: &Value) -> Result<Vec<u8>, NotITGError> {
-  let json = serde_json::to_string(val)?;
-  Ok(json.into_bytes())
+fn msg_encode(message: &Message) -> Result<Vec<u8>, NotITGError> {
+  let data = message::to_bytes(message)?;
+  Ok(data)
 }
 
-fn msg_decode(data: &[u8]) -> Result<Value, NotITGError> {
-  let decoded = str::from_utf8(data)?;
-  let data: Value = serde_json::from_str(decoded)?;
-  Ok(data)
+fn msg_decode(data: &[u8]) -> Result<Message, NotITGError> {
+  let message: Message = message::from_bytes(data)?;
+  Ok(message)
 }
 
 impl Sometsuki {
@@ -177,6 +191,7 @@ impl Sometsuki {
 
       write_buf: Vec::new(),
       read_buf: Vec::new(),
+      read_bytes: 0,
     };
 
     self.conn = Some(conn);
@@ -198,7 +213,7 @@ impl Sometsuki {
   
   /// _does not immediately send the message_; it will be stored in the write
   /// buffer until next possible write opportunity
-  pub fn send_message(&mut self, msg: &Value) -> Result<(), NotITGError> {
+  pub fn send_message(&mut self, msg: &Message) -> Result<(), NotITGError> {
     if self.is_closed() {
       return Err(NotITGError::NotConnectedError);
     }
@@ -209,16 +224,16 @@ impl Sometsuki {
   }
   /// sends a message and immediately writes it, disregarding the current memory
   /// contents
-  fn send_message_force(&mut self, msg: &Value) -> Result<(), NotITGError> {
+  fn send_message_force(&mut self, msg: &Message) -> Result<(), NotITGError> {
     self.send_message(msg)?;
     self.conn.as_mut().unwrap().flush_write_buffer()
       .map_err(NotITGError::MemoryWriteError)
   }
 
-  fn on_message(&mut self, msg: Value) {
+  fn on_message(&mut self, msg: Message) {
     trace!("< {msg}");
 
-    let Some(obj) = msg.as_object() else {
+    let Some(obj) = msg.as_map() else {
       self.emit_error(&format!("expected object, got {}", msg));
       return;
     };
@@ -394,19 +409,19 @@ impl Sometsuki {
 
   fn greet(&mut self) -> Result<(), NotITGError> {
     debug!("sending hello to host");
-    self.send_message_force(&json!({
+    self.send_message_force(&Message::from_json(&json!({
       "t": "hello",
       "n": Sometsuki::NAME,
       "v": Sometsuki::VERSION,
-    }))
+    }))?)
   }
 
   fn emit_error(&mut self, msg: &str) {
     debug!("sending error to host: {msg}");
-    match self.send_message(&json!({
+    match self.send_message(&Message::from_json(&json!({
       "t": "error",
-      "m": msg
-    })) {
+      "m": msg,
+    })).unwrap()) {
       Ok(_) => (),
       Err(e) => {
         error!("failed sending error to host: {e}\n\
@@ -417,9 +432,9 @@ impl Sometsuki {
   }
 
   fn emit_heartbeat(&mut self) {
-    match self.send_message(&json!({
-      "t": "heartbeat"
-    })) {
+    match self.send_message(&Message::from_json(&json!({
+      "t": "heartbeat",
+    })).unwrap()) {
       Ok(_) => (),
       Err(e) => {
         error!("failed sending heartbeat: {e}");
@@ -437,9 +452,9 @@ impl Sometsuki {
     self.channel.as_ref().unwrap().send(ConnectionEvent::Disconnected).unwrap();
     info!("disconnecting");
     if !quiet {
-      match self.send_message_force(&json!({
-        "t": "goodbye"
-      })) {
+      match self.send_message_force(&Message::from_json(&json!({
+        "t": "goodbye",
+      })).unwrap()) {
         Ok(_) => (),
         Err(e) => {
           warn!("failed sending goodbye to host: {e}\n\
